@@ -1,5 +1,4 @@
 FROM centos:centos6
-MAINTAINER Michael Jung
 RUN mv /etc/localtime /etc/localtime.old; ln -s /usr/share/zoneinfo/Europe/Berlin /etc/localtime
 RUN sed -i '/HOSTNAME/c\HOSTNAME=host.mydomain.tld' /etc/sysconfig/network
 RUN localedef -v -c -i en_US -f UTF-8 en_US.UTF-8; $(exit 0)
