@@ -28,8 +28,7 @@ RUN rm -rf /root/packages
 RUN touch /var/log/kolab/pykolab.log
 
 # Set hostnames manually, because they are somehow wrong inside the container
-RUN sed -i '/$myhostname = '"'host.example.com'"';/c\\\$myhostname =
-'"'host.mydomain.tld';" /usr/share/kolab/templates/amavisd.conf.tpl
+RUN sed -i '/$myhostname = '"'host.example.com'"';/c\\\$myhostname = '"'host.mydomain.tld';" /usr/share/kolab/templates/amavisd.conf.tpl
 RUN sed -i -e '/myhostname = host.domain.tld/c\myhostname = host.mydomain.tld' /etc/postfix/main.cf
 
 # Install SSL packages
