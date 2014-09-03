@@ -139,6 +139,13 @@ postmap /etc/postfix/virtual
 service postfix restart
 ```
 
+## Allow secondary addresses as sender addresses
+Edit `/etc/kolab/kolab.conf` and change address_search_attrs in section [kolab_smtp_access_policy] to:
+```
+address_search_attrs = mail, alias, mailalternateaddress
+```
+
+
 ## Settings for CalDAV client
 Use URL:
 https://host.mydomain.tld/iRony/calendars/user1@mydomain.tld/Calendar
