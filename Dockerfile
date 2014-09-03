@@ -1,6 +1,6 @@
 FROM centos:centos6
 RUN mv /etc/localtime /etc/localtime.old; ln -s /usr/share/zoneinfo/Europe/Berlin /etc/localtime
-RUN sed -i '/HOSTNAME/c\HOSTNAME=host.mydomain.tld' /etc/sysconfig/network
+RUN sed -i '/HOSTNAME/c\HOSTNAME=foo.bar.tld' /etc/sysconfig/network
 RUN localedef -v -c -i en_US -f UTF-8 en_US.UTF-8; $(exit 0)
 RUN localedef -v -c -i de_DE -f UTF-8 de_DE.UTF-8; $(exit 0)
 ENV LANG de_DE.UTF-8
@@ -28,8 +28,8 @@ RUN rm -rf /root/packages
 RUN touch /var/log/kolab/pykolab.log
 
 # Set hostnames manually, because they are somehow wrong inside the container
-RUN sed -i '/$myhostname = '"'host.example.com'"';/c\\\$myhostname = '"'host.mydomain.tld';" /usr/share/kolab/templates/amavisd.conf.tpl
-RUN sed -i -e '/myhostname = host.domain.tld/c\myhostname = host.mydomain.tld' /etc/postfix/main.cf
+RUN sed -i '/$myhostname = '"'host.example.com'"';/c\\\$myhostname = '"'foo.bar.tld';" /usr/share/kolab/templates/amavisd.conf.tpl
+RUN sed -i -e '/myhostname = host.domain.tld/c\myhostname = foo.bar.tld' /etc/postfix/main.cf
 
 # Install SSL packages
 RUN yum -y install openssl mod_ssl
