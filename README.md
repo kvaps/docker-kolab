@@ -12,9 +12,9 @@ http://kolab.org/blog/staffe/2014/06/05/mit-dem-eigenen-vpsroot-server-weg-von-g
 
 **For all instructions: Replace host.mydomain.tld with the FQDN of your server**
 
-Put the right domain names in your files:
+Create a file containing your FQDN in the build directory
 ```bash
-sed -i -e 's/foo.bar.tld/host.mydomain.tld/g' Dockerfile roundcubemailconfig.inc.php
+echo host.mydomain.tld > hostname
 ```
 
 Copy your SSL certificates into your build directory and name them as follows:

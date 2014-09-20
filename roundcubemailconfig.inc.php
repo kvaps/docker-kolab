@@ -5,6 +5,6 @@ $config['kolab_http_request'] = array(
 );
 
 # caldav/webdav
-$config['calendar_caldav_url']             = "https://foo.bar.tld/iRony/calendars/%u/%i";
-$config['kolab_addressbook_carddav_url']   = 'https://foo.bar.tld/iRony/addressbooks/%u/%i';
+$config['calendar_caldav_url']             = "https://%h/iRony/calendars/%u/%i";
+$config['kolab_addressbook_carddav_url']   = 'https://%h/iRony/addressbooks/%u/%i';
 ?>
