@@ -1,6 +1,6 @@
-# Install Kolab 3.2 in a Docker container
+# Install Kolab 3.3 in a Docker container
 
-This guide shows you how to set up Kolab 3.2 in a Docker container. I use this setup for my family, but it might also work for a small business.
+This guide shows you how to set up Kolab 3.3 in a Docker container. I use this setup for my family, but it might also work for a small business.
 
 This guide is partly based on the following guides:
 
@@ -17,7 +17,7 @@ Create a file containing your FQDN in the build directory
 echo host.mydomain.tld > hostname
 ```
 
-Copy your SSL certificates into your build directory and name them as follows:
+Copy your SSL certificates into the build directory and name them as follows:
 
 `domain.crt` Your signed certificate
 
@@ -153,6 +153,10 @@ https://host.mydomain.tld/iRony/calendars/user1@mydomain.tld/Calendar
 ## Settings for CardDAV client
 Use URL:
 https://host.mydomain.tld/iRony/addressbooks/user1@mydomain.tld/Contacts
+
+## Settings for WebDAV
+Use URL:
+https://host.mydomain.tld/iRony/files
 
 ## Settings for Android
 

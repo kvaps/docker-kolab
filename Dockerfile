@@ -11,21 +11,20 @@ RUN yum -y update
 RUN yum -y install wget yum-downloadonly
 RUN rpm -Uhv http://ftp-stud.hs-esslingen.de/pub/epel/6/i386/epel-release-6-8.noarch.rpm
 WORKDIR /etc/yum.repos.d
-RUN wget http://obs.kolabsys.com:82/Kolab:/3.2/CentOS_6/Kolab:3.2.repo
-RUN wget http://obs.kolabsys.com:82/Kolab:/3.2:/Updates/CentOS_6/Kolab:3.2:Updates.repo
+RUN wget http://obs.kolabsys.com/repositories/Kolab:/3.3/CentOS_6/Kolab:3.3.repo
+RUN wget http://obs.kolabsys.com/repositories/Kolab:/3.3:/Updates/CentOS_6/Kolab:3.3:Updates.repo
+RUN gpg --keyserver pgp.mit.edu --recv-key 0x446D5A45
+RUN gpg --export --armor devel@lists.kolab.org > devel.asc
+RUN rpm --import devel.asc
+RUN rm devel.asc
 
-RUN mkdir /root/packages
-# Manually download packages, because /usr/share/doc contents are not installed for some reason
-RUN yum --downloadonly --downloaddir=/root/packages --enablerepo=centosplus -y install kolab; $(exit 0)
+# Also install docfiles as they contain important files for the setup-kolab
+# script
+RUN sed -i '/excludedocs/d' /etc/rpm/macros.imgcreate
+RUN sed -i '/nodocs/d' /etc/yum.conf
+
 # Install kolab
 RUN yum --enablerepo=centosplus install -y kolab
-# Extract downloaded packages and copy /usr/share/doc contents. They contain schema files needed
-# by setup-kolab
-WORKDIR /root/packages
-RUN for i in *.rpm; do rpm2cpio $i | cpio -idmv; done
-RUN cp -r /root/packages/usr/share/doc/* /usr/share/doc
-WORKDIR /root
-RUN rm -rf /root/packages
 
 RUN touch /var/log/kolab/pykolab.log
 
@@ -46,20 +45,19 @@ ADD ca.pem /etc/pki/tls/certs/ca.pem
 RUN cat /etc/pki/tls/certs/domain.crt /etc/pki/tls/private/domain.key /etc/pki/tls/certs/ca.pem > /etc/pki/tls/private/domain.bundle.pem
 RUN cat /etc/pki/tls/certs/ca.pem > /etc/pki/tls/certs/domain.ca-chain.pem
 
-# Add ssl group
-RUN groupadd ssl
-RUN usermod -a -G ssl cyrus
-RUN chown -R root:ssl /etc/pki/tls/private
+# Set access rights
+RUN chown -R root:mail /etc/pki/tls/private
 RUN chmod 750 /etc/pki/tls/private
 RUN chmod 640 /etc/pki/tls/private/*
 
 # Add CA to system’s CA bundle
 RUN cat /etc/pki/tls/certs/ca.pem >> /etc/pki/tls/certs/ca-bundle.crt
 
+# Add SSL postconfig files
+ADD configure_ssl.sh /root/configure_ssl.sh
 ADD roundcubemailconfig.inc.php /root/roundcubemailconfig.inc.php
 
 # Add start and stop scripts
-ADD configure_ssl.sh /root/configure_ssl.sh
 ADD start.sh /root/start.sh
 ADD stop.sh /root/stop.sh
 
