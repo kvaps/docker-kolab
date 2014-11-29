@@ -9,4 +9,5 @@ service dirsrv stop
 service cyrus-imapd stop
 service amavisd stop
 service clamd stop
+service wallace stop
 service rsyslog stop
