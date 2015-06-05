@@ -1,5 +1,4 @@
 FROM centos:centos6
-ADD hostname /root/hostname
 
 RUN mv /etc/localtime /etc/localtime.old; ln -s /usr/share/zoneinfo/Europe/Moscow /etc/localtime
 RUN sed -i "/HOSTNAME/c\HOSTNAME=`cat /root/hostname`" /etc/sysconfig/network
@@ -20,6 +19,14 @@ RUN rpm --import devel.asc
 RUN rm devel.asc
 
 RUN yum -y install kolab
+
+#auto-answer program
+RUN yum -y install expect
+
+WORKDIR /root
+ADD settings.ini /root/settings.ini
+ADD setup.sh /root/setup.sh
+RUN /root/setup.sh
 
 # Set hostnames manually, because they are somehow wrong inside the container
 #RUN sed -i '/$myhostname = '"'host.example.com'"';/c\\\$myhostname = '"'`cat /root/hostname`';" /usr/share/kolab/templates/amavisd.conf.tpl
