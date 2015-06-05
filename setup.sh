@@ -22,18 +22,18 @@ get_config()
 }
 set_hostname()
 {
-    old_hostname="$(cat /etc/hostname)"
+    old_hostname="$(cat /etc/hosts | awk 'NR == 1{print $2}')"
     new_hostname="$(echo $main_hostname | cut -d. -f1)"
     new_domain="$(echo $main_hostname | cut -d. -f2-)"
     echo $main_hostname > /etc/hostname
-    sed -e "s/$old_hostname/$main_hostname\ $new_hostname/g" /etc/hosts | tee /etc/hosts
+    sed -e "s/$old_hostname.*$/$main_hostname\ $new_hostname/g" /etc/hosts | tee /etc/hosts
 }
 
 configure_kolab()
 {
 if [[ $main_configure_kolab == "true" ]]
-    set_hostname
 then
+    set_hostname
     adduser dirsrv
     expect <<EOF
     spawn   setup-kolab --fqdn=$main_hostname --timezone=$kolab_Timezone_ID'
@@ -72,10 +72,6 @@ then
     send    "$kolab_MySQL_root_password\r"
     expect  "Confirm MySQL roundcube password:"
     send    "$kolab_MySQL_root_password\r"
-    expect  "Cyrus Administrator password *:"
-    send    "$kolab_Cyrus_Administrator_password\r"
-    expect  "Confirm Cyrus Administrator password:"
-    send    "$kolab_Cyrus_Administrator_password\r"
     expect  "Starting kolabd:"
     exit    0
 EOF
