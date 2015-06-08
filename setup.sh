@@ -387,6 +387,17 @@ sed -i -e '/^?>/d' /etc/roundcubemail/config.inc.php
 cat < /root/roundcubemailconfig.inc.php >> /etc/roundcubemail/config.inc.php
 }
 
+print_passwords()
+{
+    echo "======================================================="
+    echo "Please save your passwords:                            "
+    echo "======================================================="
+    cat /root/settings.ini | grep password
+    echo
+    echo "            (You can also see it in /root/settings.ini)"
+    echo "_______________________________________________________"
+}
+
 
 
 get_config settings.ini
@@ -400,3 +411,5 @@ if [[ $main_configure_nginx == "true" ]]
 then
     configure_nginx
 fi
+
+print_passwords
