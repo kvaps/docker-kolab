@@ -27,40 +27,32 @@ RUN yum -y install kolab
 #auto-answer program
 RUN yum -y install expect
 
-WORKDIR /root
-ADD settings.ini /root/settings.ini
-ADD setup.sh /root/setup.sh
-RUN /root/setup.sh
-
-# Set hostnames manually, because they are somehow wrong inside the container
-#RUN sed -i '/$myhostname = '"'host.example.com'"';/c\\\$myhostname = '"'`cat /root/hostname`';" /usr/share/kolab/templates/amavisd.conf.tpl
-#RUN sed -i -e "/myhostname = host.domain.tld/c\myhostname = `cat /root/hostname`" /etc/postfix/main.cf
-
 # Add domain certificates and CA
-#ADD domain.key /etc/pki/tls/private/domain.key
-#RUN chmod 600 /etc/pki/tls/private/domain.key
-#ADD domain.crt /etc/pki/tls/certs/domain.crt
-#ADD ca.pem /etc/pki/tls/certs/ca.pem
- 
+ADD domain.key /etc/pki/tls/private/domain.key
+RUN chmod 600 /etc/pki/tls/private/domain.key
+ADD domain.crt /etc/pki/tls/certs/domain.crt
+ADD ca.pem /etc/pki/tls/certs/ca.pem
 # Create certificate bundles
-#RUN cat /etc/pki/tls/certs/domain.crt /etc/pki/tls/private/domain.key /etc/pki/tls/certs/ca.pem > /etc/pki/tls/private/domain.bundle.pem
-#RUN cat /etc/pki/tls/certs/ca.pem > /etc/pki/tls/certs/domain.ca-chain.pem
- 
+RUN cat /etc/pki/tls/certs/domain.crt /etc/pki/tls/private/domain.key /etc/pki/tls/certs/ca.pem > /etc/pki/tls/private/domain.bundle.pem
+RUN cat /etc/pki/tls/certs/domain.crt /etc/pki/tls/certs/ca.pem > /etc/pki/tls/certs/domain.bundle.pem
+RUN cat /etc/pki/tls/certs/ca.pem > /etc/pki/tls/certs/domain.ca-chain.pem
 # Set access rights
-#RUN chown -R root:mail /etc/pki/tls/private
-#RUN chmod 750 /etc/pki/tls/private
-#RUN chmod 640 /etc/pki/tls/private/*
- 
+RUN chown -R root:mail /etc/pki/tls/private
+RUN chmod 750 /etc/pki/tls/private
+RUN chmod 640 /etc/pki/tls/private/*
 # Add CA to system’s CA bundle
-#RUN cat /etc/pki/tls/certs/ca.pem >> /etc/pki/tls/certs/ca-bundle.crt
-# 
-# Add SSL postconfig files
-#ADD configure_ssl.sh /root/configure_ssl.sh
-#ADD roundcubemailconfig.inc.php /root/roundcubemailconfig.inc.php
-# 
+RUN cat /etc/pki/tls/certs/ca.pem >> /etc/pki/tls/certs/ca-bundle.crt
+
+WORKDIR /root
+
 # Add start and stop scripts
 ADD start.sh /root/start.sh
 ADD stop.sh /root/stop.sh
-# 
+
+# Add config and setup script, run it
+ADD settings.ini /root/settings.ini
+ADD setup.sh /root/setup.sh
+RUN /root/setup.sh
+ 
 # Ports: SMTP, IMAP, HTTPS, SUBMISSION, SIEVE
-#EXPOSE 25 143 443 587 4190
+EXPOSE 25 143 443 587 4190
