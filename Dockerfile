@@ -18,6 +18,10 @@ RUN gpg --export --armor devel@lists.kolab.org > devel.asc
 RUN rpm --import devel.asc
 RUN rm devel.asc
 
+# Also install docfiles as they contain important files for the setup-kolab script
+RUN sed -i '/nodocs/d' /etc/yum.conf
+
+# Install kolab
 RUN yum -y install kolab
 
 #auto-answer program
@@ -55,8 +59,8 @@ RUN /root/setup.sh
 #ADD roundcubemailconfig.inc.php /root/roundcubemailconfig.inc.php
 # 
 # Add start and stop scripts
-#ADD start.sh /root/start.sh
-#ADD stop.sh /root/stop.sh
+ADD start.sh /root/start.sh
+ADD stop.sh /root/stop.sh
 # 
 # Ports: SMTP, IMAP, HTTPS, SUBMISSION, SIEVE
 #EXPOSE 25 143 443 587 4190

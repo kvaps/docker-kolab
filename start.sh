@@ -1,7 +1,9 @@
 #!/bin/bash
 service rsyslog start
 service postfix start
-service httpd start
+#service httpd start
+service nginx start
+service php-fpm start
 service mysqld start
 service dirsrv start
 service cyrus-imapd start
