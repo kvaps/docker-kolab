@@ -1,4 +1,17 @@
 #!/bin/bash
+usage ()
+{
+     echo
+     echo "Usage:    ./setup.sh [ARGUMENT]"
+     echo
+     echo "Arguments:"
+     echo "    kolab                 - Configure Kolab"
+     echo "    nginx                 - Configure nginx"
+     echo "    ssl                   - Configure SSL"
+     echo "    opendkim              - Configure OpenDKIM"
+     echo
+     exit
+}
 
 get_config()
 {
@@ -400,16 +413,21 @@ print_passwords()
 
 
 
+
+if [ "$1" = "--help" ] || [ "$1" = "-h" ] || [ "$1" = "help" ] ; then 
+    usage
+fi
+
 get_config settings.ini
 
-if [[ $main_configure_kolab == "true" ]]
-then
+if [[ $main_configure_kolab == "true" ]] || [ "$1" = "kolab" ] ; then
     configure_kolab
 fi
 
-if [[ $main_configure_nginx == "true" ]]
-then
+if [[ $main_configure_nginx == "true" ]] || [ "$1" = "nginx" ] ; then
     configure_nginx
 fi
 
+if [ ! $1 ] || [ "$1" = "kolab" ] ; then
 print_passwords
+fi
