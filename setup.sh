@@ -96,8 +96,6 @@ configure_nginx() {
     # This section is made using the official kolab wiki-page:
     # https://docs.kolab.org/howtos/nginx-webserver.html
 
-    yum -y install nginx php-fpm
-
     service httpd stop
     #chkconfig httpd off
 
@@ -355,9 +353,9 @@ server {
 }
 EOF
 
-sed '/^\[kolab_wap\]/,/^\[/ { x; /^$/ !{ x; H }; /^$/ { x; h; }; d; }; x; /^\[kolab_wap\]/ { s/\(\n\+[^\n]*\)$/\napi_url = https:\/\/'$main_hostname'\/kolab-webadmin\/api\1/; p; x; p; x; d }; x' /etc/kolab/kolab.conf
+    sed -i '/^\[kolab_wap\]/,/^\[/ { x; /^$/ !{ x; H }; /^$/ { x; h; }; d; }; x; /^\[kolab_wap\]/ { s/\(\n\+[^\n]*\)$/\napi_url = https:\/\/'$main_hostname'\/kolab-webadmin\/api\1/; p; x; p; x; d }; x' /etc/kolab/kolab.conf
 
-sed -i "s/\$config\['assets_path'\] = '.*';/\$config\['assets_path'\] = '\/assets\/';/g" /etc/roundcubemail/config.inc.php
+    sed -i "s/\$config\['assets_path'\] = '.*';/\$config\['assets_path'\] = '\/assets\/';/g" /etc/roundcubemail/config.inc.php
 
     service php-fpm start
     #chkconfig php-fpm on
@@ -369,67 +367,88 @@ sed -i "s/\$config\['assets_path'\] = '.*';/\$config\['assets_path'\] = '\/asset
 configure_ssl()
 {
 
-# Configure apache for SSL
-    # Install mod_ssl
-    yum -y install mod_ssl
-    
-    # Set your ssl certificates 
-    sed -i -e '/SSLCertificateFile \/etc\/pki/c\SSLCertificateFile /etc/pki/tls/certs/domain.crt' /etc/httpd/conf.d/ssl.conf
-    sed -i -e '/SSLCertificateKeyFile \/etc\/pki/c\SSLCertificateKeyFile /etc/pki/tls/private/domain.key' /etc/httpd/conf.d/ssl.conf
-    sed -i -e '/SSLCertificateChainFile \/etc\/pki/c\SSLCertificateChainFile /etc/pki/tls/certs/domain.ca-chain.pem' /etc/httpd/conf.d/ssl.conf
-    if [ "$(grep -c "webmail" /etc/httpd/conf/httpd.conf)" == "0" ] ; then sed -i -e 's/<Directory \/>/<Directory \/>\n    RedirectMatch \^\/$ \/webmail\//g' /etc/httpd/conf/httpd.conf; fi
-    
-    # Create a vhost for http (:80) to redirect everything to https
-    cat >> /etc/httpd/conf/httpd.conf << EOF
-    
+    if [[ ( -f /root/certs/domain.crt ) && ( -f /root/certs/domain.key ) && ( -f /root/certs/ca.pem ) ]]; then
+
+        mv /root/certs/domain.key /etc/pki/tls/private/domain.key
+        mv /root/certs/domain.crt /etc/pki/tls/certs/domain.crt
+        mv /root/certs/ca.pem /etc/pki/tls/certs/ca.pem
+        
+        # Create certificate bundles
+        cat /etc/pki/tls/certs/domain.crt /etc/pki/tls/private/domain.key /etc/pki/tls/certs/ca.pem > /etc/pki/tls/private/domain.bundle.pem
+        cat /etc/pki/tls/certs/domain.crt /etc/pki/tls/certs/ca.pem > /etc/pki/tls/certs/domain.bundle.pem
+        cat /etc/pki/tls/certs/ca.pem > /etc/pki/tls/certs/domain.ca-chain.pem
+        # Set access rights
+        chown -R root:mail /etc/pki/tls/private
+        chmod 600 /etc/pki/tls/private/domain.key
+        chmod 750 /etc/pki/tls/private
+        chmod 640 /etc/pki/tls/private/*
+        # Add CA to system’s CA bundle
+        cat /etc/pki/tls/certs/ca.pem >> /etc/pki/tls/certs/ca-bundle.crt
+
+        # Configure apache for SSL
+        
+        # Set your ssl certificates 
+        sed -i -e '/SSLCertificateFile \/etc\/pki/c\SSLCertificateFile /etc/pki/tls/certs/domain.crt' /etc/httpd/conf.d/ssl.conf
+        sed -i -e '/SSLCertificateKeyFile \/etc\/pki/c\SSLCertificateKeyFile /etc/pki/tls/private/domain.key' /etc/httpd/conf.d/ssl.conf
+        sed -i -e '/SSLCertificateChainFile \/etc\/pki/c\SSLCertificateChainFile /etc/pki/tls/certs/domain.ca-chain.pem' /etc/httpd/conf.d/ssl.conf
+        if [ "$(grep -c "webmail" /etc/httpd/conf/httpd.conf)" == "0" ] ; then sed -i -e 's/<Directory \/>/<Directory \/>\n    RedirectMatch \^\/$ \/webmail\//g' /etc/httpd/conf/httpd.conf; fi
+        
+        # Create a vhost for http (:80) to redirect everything to https
+        cat >> /etc/httpd/conf/httpd.conf << EOF
+
 <VirtualHost _default_:80>
     RewriteEngine On
     RewriteRule ^(.*)$ https://%{HTTP_HOST}$1 [R=301,L]
 </VirtualHost>
 EOF
 
-# Configuration nginx for SSL
-    #
-    if [ -f /etc/nginx/nginx.conf ]; then
-        sed -i -e '/    ssl_certificate \/etc\/pki/c\    ssl_certificate /etc/pki/tls/certs/domain.bundle.pem;' /etc/nginx/conf.d/default.conf
-        sed -i -e '/    ssl_certificate_key \/etc\/pki/c\    ssl_certificate_key /etc/pki/tls/private/domain.key;' /etc/nginx/conf.d/default.conf
-    fi
-
-#Configure Cyrus for SSL
-    sed -r -i \
-        -e 's|^tls_server_cert:.*|tls_server_cert: /etc/pki/tls/certs/domain.crt|g' \
-        -e 's|^tls_server_key:.*|tls_server_key: /etc/pki/tls/private/domain.key|g' \
-        -e 's|^tls_server_ca_file:.*|tls_server_ca_file: /etc/pki/tls/certs/domain.ca-chain.pem|g' \
-        /etc/imapd.conf
-
-#Configure Postfix for SSL
-    postconf -e smtpd_tls_key_file=/etc/pki/tls/private/domain.key
-    postconf -e smtpd_tls_cert_file=/etc/pki/tls/certs/domain.crt
-    postconf -e smtpd_tls_CAfile=/etc/pki/tls/certs/domain.ca-chain.pem
-
-#Configure kolab-cli for SSL
-    sed -r -i \
-          -e '/api_url/d' \
-          -e "s#\[kolab_wap\]#[kolab_wap]\napi_url = https://$main_hostname/kolab-webadmin/api#g" \
-          /etc/kolab/kolab.conf
-
-#Configure Roundcube for SSL
-    sed -i -e 's/http:/https:/' /etc/roundcubemail/libkolab.inc.php
-    sed -i -e 's/http:/https:/' /etc/roundcubemail/kolab_files.inc.php
-    sed -i -e '/^?>/d' /etc/roundcubemail/config.inc.php
+        # Configuration nginx for SSL
+        #
+        if [ -f /etc/nginx/nginx.conf ]; then
+            sed -i -e '/    ssl_certificate \/etc\/pki/c\    ssl_certificate /etc/pki/tls/certs/domain.bundle.pem;' /etc/nginx/conf.d/default.conf
+            sed -i -e '/    ssl_certificate_key \/etc\/pki/c\    ssl_certificate_key /etc/pki/tls/private/domain.key;' /etc/nginx/conf.d/default.conf
+        fi
     
-    # Tell the webclient the SSL iRony URLs for CalDAV and CardDAV
-    cat >> /etc/roundcubemail/config.inc.php << EOF
+        #Configure Cyrus for SSL
+        sed -r -i \
+            -e 's|^tls_server_cert:.*|tls_server_cert: /etc/pki/tls/certs/domain.crt|g' \
+            -e 's|^tls_server_key:.*|tls_server_key: /etc/pki/tls/private/domain.key|g' \
+            -e 's|^tls_server_ca_file:.*|tls_server_ca_file: /etc/pki/tls/certs/domain.ca-chain.pem|g' \
+            /etc/imapd.conf
+    
+        #Configure Postfix for SSL
+        postconf -e smtpd_tls_key_file=/etc/pki/tls/private/domain.key
+        postconf -e smtpd_tls_cert_file=/etc/pki/tls/certs/domain.crt
+        postconf -e smtpd_tls_CAfile=/etc/pki/tls/certs/domain.ca-chain.pem
+    
+        #Configure kolab-cli for SSL
+        sed -r -i \
+              -e '/api_url/d' \
+              -e "s#\[kolab_wap\]#[kolab_wap]\napi_url = https://$main_hostname/kolab-webadmin/api#g" \
+              /etc/kolab/kolab.conf
+    
+        #Configure Roundcube for SSL
+        sed -i -e 's/http:/https:/' /etc/roundcubemail/libkolab.inc.php
+        sed -i -e 's/http:/https:/' /etc/roundcubemail/kolab_files.inc.php
+        sed -i -e '/^?>/d' /etc/roundcubemail/config.inc.php
+        
+        # Tell the webclient the SSL iRony URLs for CalDAV and CardDAV
+        cat >> /etc/roundcubemail/config.inc.php << EOF
 # caldav/webdav
 \$config['calendar_caldav_url']             = "https://%h/iRony/calendars/%u/%i";
 \$config['kolab_addressbook_carddav_url']   = 'https://%h/iRony/addressbooks/%u/%i';
 EOF
 
-    # Redirect all http traffic to https
-    cat >> /etc/roundcubemail/config.inc.php << EOF
+        # Redirect all http traffic to https
+        cat >> /etc/roundcubemail/config.inc.php << EOF
 # Force https redirect for http requests
 \$config['force_https'] = true;
 EOF
+
+else
+    echo "certs/domain.crt or certs/domain.key or certs/ca.pem not found, skipping..."
+fi
+
 }
 
 print_passwords()
