@@ -451,6 +451,101 @@ fi
 
 }
 
+configure_fail2ban()
+{
+
+touch /var/log/maillog
+mkdir -p /var/log/roundcubemail && touch /var/log/roundcubemail/userlogins ; chown apache:apache -R /var/log/roundcubemail
+mkdir -p /var/log/syncroton && touch /var/log/syncroton/userlogins ; chown apache:apache -R /var/log/syncroton
+mkdir -p /var/log/chwala && touch /var/log/chwala/userlogins ; chown apache:apache -R /var/log/chwala
+mkdir -p /var/log/iRony && touch /var/log/iRony/userlogins ; chown apache:apache -R /var/log/iRony
+
+
+    cat > /etc/fail2ban/filter.d/kolab-cyrus.conf << EOF
+[Definition]
+failregex = (imaps|pop3s)\[[0-9]*\]: badlogin: \[<HOST>\] (plain|PLAIN|login|plaintext) .*
+ignoreregex =
+EOF
+    cat > /etc/fail2ban/filter.d/kolab-postfix.conf << EOF
+[Definition]
+failregex = postfix\/submission\/smtpd\[[0-9]*\]: warning: unknown\[<HOST>\]: SASL (PLAIN|LOGIN) authentication failed: authentication failure
+ignoreregex =
+EOF
+    cat > /etc/fail2ban/filter.d/kolab-roundcube.conf << EOF
+[Definition]
+failregex = <.*> Failed login for .* from <HOST> in session .*
+ignoreregex =
+EOF
+    cat > /etc/fail2ban/filter.d/kolab-irony.conf << EOF
+[Definition]
+failregex = <.*> Failed login for .* from <HOST> in session .*
+ignoreregex =
+EOF
+    cat > /etc/fail2ban/filter.d/kolab-chwala.conf << EOF
+[Definition]
+failregex = <.*> Failed login for .* from <HOST> in session .*
+ignoreregex =
+EOF
+    cat > /etc/fail2ban/filter.d/kolab-syncroton.conf << EOF
+[Definition]
+failregex = <.*> Failed login for .* from <HOST> in session .*
+ignoreregex =
+EOF
+    if [ "$(grep -c "kolab" /etc/fail2ban/jail.conf)" == "0" ] ; then
+    cat >> /etc/fail2ban/jail.conf << EOF
+
+[kolab-cyrus]
+
+enabled = true
+filter  = kolab-cyrus
+action  = iptables-multiport[name=cyrus-imap,port="143,993,110,995,4190"]
+logpath = /var/log/maillog
+maxretry = 5
+
+[kolab-postfix]
+
+enabled = true
+filter  = kolab-postfix
+action  = iptables-multiport[name=kolab-postfix,port="25,587"]
+logpath = /var/log/maillog
+maxretry = 5
+
+[kolab-roundcube]
+
+enabled = true
+filter  = kolab-roundcube
+action  = iptables-multiport[name=kolab-roundcube, port="http,https"]
+logpath = /var/log/roundcubemail/userlogins
+maxretry = 5
+
+[kolab-irony]
+
+enabled = true
+filter  = kolab-irony
+action  = iptables-multiport[name=kolab-irony,port="http,https"]
+logpath = /var/log/iRony/userlogins
+maxretry = 5
+
+[kolab-chwala]
+
+enabled = true
+filter  = kolab-chwala
+action  = iptables-multiport[name=kolab-chwala,port="http,https"]
+logpath = /var/log/chwala/userlogins
+maxretry = 5
+
+[kolab-syncroton]
+
+enabled = true
+filter  = kolab-syncroton
+action  = iptables-multiport[name=kolab-syncroton,port="http,https"]
+logpath = /var/log/syncroton/userlogins
+maxretry = 5
+EOF
+
+fi
+}
+
 print_passwords()
 {
     echo "======================================================="
@@ -469,7 +564,7 @@ if [ "$1" = "--help" ] || [ "$1" = "-h" ] || [ "$1" = "help" ] ; then
     usage
 fi
 
-get_config settings.ini
+get_config /root/settings.ini
 
 if [[ $main_configure_kolab == "true" ]] || [ "$1" = "kolab" ] ; then
     configure_kolab
@@ -481,6 +576,10 @@ fi
 
 if [[ $main_configure_ssl == "true" ]] || [ "$1" = "ssl" ] ; then
     configure_ssl
+fi
+
+if [[ $main_configure_fail2ban == "true" ]] || [ "$1" = "fail2ban" ] ; then
+    configure_fail2ban
 fi
 
 if [ ! $1 ] || [ "$1" = "kolab" ] ; then

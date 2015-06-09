@@ -42,4 +42,4 @@ ADD setup.sh /root/setup.sh
 RUN /root/setup.sh
  
 # Ports: SMTP, IMAP, HTTPS, SUBMISSION, SIEVE
-EXPOSE 25 143 443 587 4190
+EXPOSE  25 80 143 443 587 4190
