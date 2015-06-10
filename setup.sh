@@ -584,6 +584,15 @@ EOF
 
 }
 
+configure_zipdownload()
+{
+    yum install -y git 
+    git clone https://github.com/roundcube/roundcubemail/ --depth 1 /tmp/roundcube
+    mv /tmp/roundcube/plugins/zipdownload/ /usr/share/roundcubemail/plugins/
+    rm -rf /tmp/roundcube/
+    if [ "$(grep -c "zipdownload" /etc/roundcubemail/config.inc.php)" == "0" ] ; then sed -i "/'contextmenu',/a \            'zipdownload'," /etc/roundcubemail/config.inc.php ; fi
+}
+
 configure_zlib()
 {
     yum -y install php-devel zlib-devel gcc pcre-devel
@@ -645,11 +654,11 @@ fi
 
 # Extras
 
-if [[ $main_configure_zipdownload == "true" ]] || [ "$1" = "zipdownload" ] ; then
+if [[ $extras_configure_zipdownload == "true" ]] || [ "$1" = "zipdownload" ] ; then
     configure_zipdownload
 fi
 
-if [[ $main_configure_dkim == "zlib" ]] || [ "$1" = "zlib" ] ; then
+if [[ $extras_configure_zlib == "zlib" ]] || [ "$1" = "zlib" ] ; then
     configure_zlib
 fi
 
