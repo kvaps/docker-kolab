@@ -41,5 +41,5 @@ ADD settings.ini /root/settings.ini
 ADD setup.sh /root/setup.sh
 RUN /root/setup.sh
  
-# Ports: SMTP, IMAP, HTTPS, SUBMISSION, SIEVE
-EXPOSE  25 80 143 443 587 4190
+# Ports: HTTP HTTPS SMTP SMTPS POP3 POP3S IMAP IMAPS SIEVE
+EXPOSE  80 443 25 587 143 993 110 995 4190
