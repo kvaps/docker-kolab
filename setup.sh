@@ -90,6 +90,10 @@ send    "$kolab_MySQL_roundcube_password\r"
 expect  "Starting kolabd:"
 exit    0
 EOF
+
+    # fix bug: "unable to open Berkeley db /etc/sasldb2: No such file or directory"
+    echo password | saslpasswd2 sasldb2 && chown cyrus:saslauth /etc/sasldb2
+
 }
 
 configure_nginx() {
