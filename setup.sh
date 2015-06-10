@@ -371,6 +371,15 @@ EOF
     service nginx start
     #chkconfig nginx on
 
+    # Comment apache
+    sed '/^[^#]*httpd /s/^/#/' /root/start.sh
+    sed '/^[^#]*httpd /s/^/#/' /root/stop.sh
+    # Uncoment nginx and php-fpm
+    sed -i '/^#.* nginx /s/^#//' /root/start.sh
+    sed -i '/^#.* php-fpm /s/^#//' /root/start.sh
+    sed -i '/^#.* nginx /s/^#//' /root/stop.sh
+    sed -i '/^#.* php-fpm /s/^#//' /root/stop.sh
+
 }
 
 configure_ssl()
@@ -552,7 +561,13 @@ logpath = /var/log/syncroton/userlogins
 maxretry = 5
 EOF
 
-fi
+    fi
+
+    # Uncoment fail2ban
+    sed -i '/^#.* fail2ban /s/^#//' /root/start.sh
+    sed -i '/^#.* fail2ban /s/^#//' /root/stop.sh
+
+
 }
 
 configure_dkim()
@@ -581,6 +596,10 @@ EOF
     postconf -e milter_protocol=2
     postconf -e smtpd_milters=unix:/var/run/opendkim/opendkim.sock
     postconf -e non_smtpd_milters=unix:/var/run/opendkim/opendkim.sock
+
+    # Uncoment opendkim
+    sed -i '/^#.* opendkim /s/^#//' /root/start.sh
+    sed -i '/^#.* opendkim /s/^#//' /root/stop.sh
 
 }
 
