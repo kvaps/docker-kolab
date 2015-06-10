@@ -10,6 +10,8 @@ usage ()
      echo "    ssl                   - Configure SSL using your certs"
      echo "    fail2ban              - Configure Fail2ban"
      echo "    opendkim              - Configure OpenDKIM"
+     echo "    zipdownload           - Configure zipdownload plugin for roundcube"
+     echo "    zlib	             - Update php-zlib"
      echo
      exit
 }
@@ -582,6 +584,13 @@ EOF
 
 }
 
+configure_zlib()
+{
+    yum -y install php-devel zlib-devel gcc pcre-devel
+    pecl install zip
+    if [ "$(grep -c "extension=zip.so" /etc/php.ini)" == "0" ] ; then echo extension=zip.so >> /etc/php.ini ; fi
+}
+
 print_passwords()
 {
     echo "======================================================="
@@ -612,6 +621,8 @@ fi
 
 get_config /root/settings.ini
 
+# Main
+
 if [[ $main_configure_kolab == "true" ]] || [ "$1" = "kolab" ] ; then
     configure_kolab
 fi
@@ -631,6 +642,18 @@ fi
 if [[ $main_configure_dkim == "true" ]] || [ "$1" = "dkim" ] ; then
     configure_dkim
 fi
+
+# Extras
+
+if [[ $main_configure_zipdownload == "true" ]] || [ "$1" = "zipdownload" ] ; then
+    configure_zipdownload
+fi
+
+if [[ $main_configure_dkim == "zlib" ]] || [ "$1" = "zlib" ] ; then
+    configure_zlib
+fi
+
+# Print functions
 
 if [[ $main_configure_kolab == "true" ]] || [ "$1" = "kolab" ] ; then
     print_passwords
