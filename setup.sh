@@ -7,7 +7,8 @@ usage ()
      echo "Arguments:"
      echo "    kolab                 - Configure Kolab"
      echo "    nginx                 - Configure nginx"
-     echo "    ssl                   - Configure SSL"
+     echo "    ssl                   - Configure SSL using your certs"
+     echo "    fail2ban              - Configure Fail2ban"
      echo "    opendkim              - Configure OpenDKIM"
      echo
      exit
@@ -32,12 +33,14 @@ get_config()
             fi
         fi
     done < $1
+
+    new_hostname="$(echo $main_hostname | cut -d. -f1)"
+    new_domain="$(echo $main_hostname | cut -d. -f2-)"
+
 }
 set_hostname()
 {
     old_hostname="$(cat /etc/hosts | awk 'NR == 1{print $2}')"
-    new_hostname="$(echo $main_hostname | cut -d. -f1)"
-    new_domain="$(echo $main_hostname | cut -d. -f2-)"
     echo $main_hostname > /etc/hostname
     sed -e "s/$old_hostname.*$/$main_hostname\ $new_hostname/g" /etc/hosts | tee /etc/hosts
 }
@@ -550,6 +553,35 @@ EOF
 fi
 }
 
+configure_dkim()
+{
+    opendkim-genkey -D /etc/opendkim/keys/ -d $new_domain -s $main_hostname
+    
+    chgrp opendkim /etc/opendkim/keys/
+    chmod g+r /etc/opendkim/keys/*
+    gpasswd -a postfix opendkim
+    
+    tee -a /etc/opendkim.conf  <<EOF
+KeyTable      /etc/opendkim/KeyTable
+SigningTable  refile:/etc/opendkim/SigningTable
+X-Header yes 
+EOF
+
+    if [ "$(grep -c "$new_domain" /etc/opendkim/KeyTable)" == "0" ] ; then
+        echo $(echo $main_hostname | sed s/\\./._domainkey./) $new_domain:$new_hostname:$(ls /etc/opendkim/keys/*.private) | tee -a /etc/opendkim/KeyTable
+    fi
+
+    if [ "$(grep -c "$new_domain" /etc/opendkim/SigningTable)" == "0" ] ; then
+        echo $new_domain $(echo $main_hostname | sed s/\\./._domainkey./) | tee -a /etc/opendkim/SigningTable
+    fi    
+
+    postconf -e milter_default_action=accept
+    postconf -e milter_protocol=2
+    postconf -e smtpd_milters=unix:/var/run/opendkim/opendkim.sock
+    postconf -e non_smtpd_milters=unix:/var/run/opendkim/opendkim.sock
+
+}
+
 print_passwords()
 {
     echo "======================================================="
@@ -558,6 +590,16 @@ print_passwords()
     cat /root/settings.ini | grep password
     echo
     echo "            (You can also see it in /root/settings.ini)"
+    echo "_______________________________________________________"
+}
+
+print_dkim_keys()
+{
+    echo "_______________________________________________________"
+    echo
+    echo "Your DNS-record for your DKIM key:"
+    echo
+    cat /etc/opendkim/keys/$main_hostname.txt
     echo "_______________________________________________________"
 }
 
@@ -586,6 +628,14 @@ if [[ $main_configure_fail2ban == "true" ]] || [ "$1" = "fail2ban" ] ; then
     configure_fail2ban
 fi
 
-if [ ! $1 ] || [ "$1" = "kolab" ] ; then
-print_passwords
+if [[ $main_configure_dkim == "true" ]] || [ "$1" = "dkim" ] ; then
+    configure_dkim
+fi
+
+if [[ $main_configure_kolab == "true" ]] || [ "$1" = "kolab" ] ; then
+    print_passwords
+fi
+
+if [[ $main_configure_dkim == "true" ]] || [ "$1" = "dkim" ] ; then
+    print_dkim_keys
 fi
