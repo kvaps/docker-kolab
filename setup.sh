@@ -47,6 +47,188 @@ set_hostname()
     sed -e "s/$old_hostname.*$/$main_hostname\ $new_hostname/g" /etc/hosts | tee /etc/hosts
 }
 
+configure_supervisor()
+{
+    mkdir -p /root/wrappers/
+
+    cat > /root/wrappers/rsyslog.sh << EOF
+#!/bin/bash
+d=rsyslog
+l=/var/log/messages
+g=rsyslogd:
+trap '{ service \$d stop; exit 0; }' EXIT 
+service \$d start 
+tail -f -n 1 \$l | grep \$g
+EOF
+
+    cat > /root/wrappers/nginx.sh << EOF
+#!/bin/bash
+d=nginx
+l=/var/log/nginx/error.log
+trap '{ service \$d stop; exit 0; }' EXIT 
+service \$d start 
+tail -f -n1 \$l
+EOF
+
+    cat > /root/wrappers/httpd.sh << EOF
+#!/bin/bash
+d=httpd
+l=/var/log/httpd/error_log
+trap '{ service \$d stop; exit 0; }' EXIT
+service \$d start ; tail -f -n1 \$l
+EOF
+
+    cat > /root/wrappers/php-fpm.sh << EOF
+#!/bin/bash
+d=php-fpm
+l=/var/log/php-fpm/error.log
+trap '{ service \$d stop; exit 0; }' EXIT
+service \$d start
+tail -f -n1 \$l
+EOF
+
+    cat > /root/wrappers/mysqld.sh << EOF
+#!/bin/bash
+d=mysqld
+l=/var/log/mysqld.log
+trap '{ service \$d stop; exit 0; }' EXIT
+service \$d start
+tail -f -n1 \$l
+EOF
+
+    cat > /root/wrappers/dirsrv.sh << EOF
+#!/bin/bash
+d=dirsrv
+l=/var/log/dirsrv/slapd-*/errors
+trap '{ service \$d stop; exit 0; }' EXIT
+service \$d start
+tail -f -n1 \$l
+EOF
+
+    cat > /root/wrappers/postfix.sh << EOF
+#!/bin/bash
+d=postfix
+l=/var/log/maillog
+g='postfix.*\[.*\]:'
+trap '{ service \$d stop; exit 0; }' EXIT
+service \$d start
+tail -f -n1 \$l | grep \$g
+EOF
+
+    cat > /root/wrappers/cyrus-imapd.sh << EOF
+#!/bin/bash
+d=cyrus-imapd
+l=/var/log/maillog
+g='[master\|pop3\|imap].*\[.*\]:'
+trap '{ service \$d stop; exit 0; }' EXIT 
+service \$d start
+tail -f -n1 \$l
+EOF
+
+    cat > /root/wrappers/amavisd.sh << EOF
+#!/bin/bash
+d=amavisd
+l=/var/log/maillog
+g='amavis.*\[.*\]:'
+trap '{ service \$d stop; exit 0; }' EXIT
+service \$d start
+tail -f -n1 \$l | grep \$g
+EOF
+
+    cat > /root/wrappers/clamd.sh << EOF
+#!/bin/bash
+d=clamd
+l=/var/log/clamav/clamd.log
+trap '{ service \$d stop; exit 0; }' EXIT
+service \$d start 
+tail -f -n1 \$l
+EOF
+
+    cat > /root/wrappers/wallace.sh << EOF
+#!/bin/bash
+d=wallace
+trap '{ service \$d stop; exit 0; }' EXIT
+service \$d start
+sleep infinity
+EOF
+
+    cat > /root/wrappers/kolabd.sh << EOF
+#!/bin/bash
+d=kolabd
+l=/var/log/kolab/pykolab.log
+trap '{ service \$d stop; exit 0; }' EXIT 
+sleep 10
+service \$d start 
+tail -f -n1 \$l
+EOF
+
+    cat > /root/wrappers/kolab-saslauthd.sh << EOF
+#!/bin/bash
+d=kolab-saslauthd
+trap '{ sleep 2; service \$d stop; exit 0; }' EXIT
+service \$d start
+sleep infinity
+EOF
+
+    cat > /root/wrappers/opendkim.sh << EOF
+#!/bin/bash
+d=opendkim
+l=/var/log/maillog
+g='opendkim.*\[.*\]:'
+trap '{ service \$d stop; exit 0; }' EXIT
+service \$d start
+tail -f -n1 \$l | grep \$g
+EOF
+
+    cat > /root/wrappers/fail2ban.sh << EOF
+#!/bin/bash
+d=fail2ban
+l=/var/log/messages
+g='fail2ban.*\[.*\]:'
+trap '{ service \$d stop; exit 0; }' EXIT
+service \$d start
+tail -f -n1 \$l | grep \$g
+EOF
+
+    chmod +x wrappers/*
+
+    cat > /etc/supervisord.conf << EOF
+[supervisord]
+nodaemon=true
+
+[program:rsyslog]
+command=/root/wrappers/rsyslog.sh 
+[program:nginx]
+command=/root/wrappers/nginx.sh 
+;[program:httpd]
+;command=/root/wrappers/httpd.sh 
+[program:php-fpm]
+command=/root/wrappers/php-fpm.sh 
+[program:mysqld]
+command=/root/wrappers/mysqld.sh 
+[program:dirsrv]
+command=/root/wrappers/dirsrv.sh 
+[program:postfix]
+command=/root/wrappers/postfix.sh 
+[program:cyrus-imapd]
+command=/root/wrappers/cyrus-imapd.sh 
+[program:amavisd]
+command=/root/wrappers/amavisd.sh 
+[program:clamd]
+command=/root/wrappers/clamd.sh 
+[program:wallace]
+command=/root/wrappers/wallace.sh 
+[program:kolabd]
+command=/root/wrappers/kolabd.sh 
+[program:kolab-saslauthd]
+command=/root/wrappers/kolab-saslauthd.sh 
+;[program:opendkim]
+;command=/root/wrappers/opendkim.sh 
+;[program:fail2ban]
+;command=/root/wrappers/fail2ban.sh 
+EOF
+}
+
 configure_kolab()
 {
     set_hostname
@@ -225,8 +407,8 @@ server {
 server {
     listen 443 ssl default_server;
     server_name $main_hostname;
-    access_log /var/log/nginx/$main_hostname-access_log;
-    error_log /var/log/nginx/$main_hostname-error_log;
+    access_log /var/log/nginx/access.log;
+    error_log /var/log/nginx/error.log;
 
     # enable ssl
 
@@ -372,13 +554,10 @@ EOF
     #chkconfig nginx on
 
     # Comment apache
-    sed '/^[^#]*httpd /s/^/#/' /root/start.sh
-    sed '/^[^#]*httpd /s/^/#/' /root/stop.sh
+    sed '/^[^;]*httpd/s/^/#/' /etc/supervisord.conf
     # Uncoment nginx and php-fpm
-    sed -i '/^#.* nginx /s/^#//' /root/start.sh
-    sed -i '/^#.* php-fpm /s/^#//' /root/start.sh
-    sed -i '/^#.* nginx /s/^#//' /root/stop.sh
-    sed -i '/^#.* php-fpm /s/^#//' /root/stop.sh
+    sed -i '/^;.* nginx/s/^#//' /etc/supervisord.conf
+    sed -i '/^;.* php-fpm/s/^#//' /etc/supervisord.conf
 
 }
 
@@ -564,8 +743,7 @@ EOF
     fi
 
     # Uncoment fail2ban
-    sed -i '/^#.* fail2ban /s/^#//' /root/start.sh
-    sed -i '/^#.* fail2ban /s/^#//' /root/stop.sh
+    sed -i '/^;.*fail2ban/s/^#//' /etc/supervisord.conf
 
 
 }
@@ -577,7 +755,9 @@ configure_dkim()
     chgrp opendkim /etc/opendkim/keys/
     chmod g+r /etc/opendkim/keys/*
     gpasswd -a postfix opendkim
-    
+
+    # TODO: change socket to unix:/var/run/opendkim/opendkim.sock 
+
     tee -a /etc/opendkim.conf  <<EOF
 KeyTable      /etc/opendkim/KeyTable
 SigningTable  refile:/etc/opendkim/SigningTable
@@ -598,8 +778,7 @@ EOF
     postconf -e non_smtpd_milters=unix:/var/run/opendkim/opendkim.sock
 
     # Uncoment opendkim
-    sed -i '/^#.* opendkim /s/^#//' /root/start.sh
-    sed -i '/^#.* opendkim /s/^#//' /root/stop.sh
+    sed -i '/^;.*opendkim/s/^#//' /etc/supervisord.conf
 
 }
 
@@ -648,6 +827,8 @@ if [ "$1" = "--help" ] || [ "$1" = "-h" ] || [ "$1" = "help" ] ; then
 fi
 
 get_config /root/settings.ini
+
+configure_supervisor
 
 # Main
 

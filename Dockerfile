@@ -25,7 +25,7 @@ RUN sed -i '/nodocs/d' /etc/yum.conf
 RUN yum -y install kolab
 
 # Install additional soft
-RUN yum -y install expect mod_ssl nginx php-fpm opendkim fail2ban 
+RUN yum -y install supervisor expect mod_ssl nginx php-fpm opendkim fail2ban 
 
 # Add domain certificates and CA
 ADD certs /root/certs
