@@ -750,19 +750,21 @@ EOF
 
 configure_dkim()
 {
-    opendkim-genkey -D /etc/opendkim/keys/ -d $new_domain -s $main_hostname
+    opendkim-genkey -D /etc/opendkim/keys/ -d $new_domain -s $new_hostname
     
     chgrp opendkim /etc/opendkim/keys/
     chmod g+r /etc/opendkim/keys/*
     gpasswd -a postfix opendkim
 
-    # TODO: change socket to unix:/var/run/opendkim/opendkim.sock 
+    sed -i -e 's|^Socket.*|Socket  unix:/var/run/opendkim/opendkim.sock|g' /etc/opendkim.conf
 
-    tee -a /etc/opendkim.conf  <<EOF
+    if [ "$(grep -c "^KeyTable" /etc/opendkim.conf)" == "0" ] ; then
+        tee -a /etc/opendkim.conf  <<EOF
 KeyTable      /etc/opendkim/KeyTable
 SigningTable  refile:/etc/opendkim/SigningTable
 X-Header yes 
 EOF
+    fi
 
     if [ "$(grep -c "$new_domain" /etc/opendkim/KeyTable)" == "0" ] ; then
         echo $(echo $main_hostname | sed s/\\./._domainkey./) $new_domain:$new_hostname:$(ls /etc/opendkim/keys/*.private) | tee -a /etc/opendkim/KeyTable
