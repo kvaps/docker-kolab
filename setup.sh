@@ -12,6 +12,7 @@ usage ()
      echo "    ssl                   - Configure SSL using your certs"
      echo "    fail2ban              - Configure Fail2ban"
      echo "    dkim                  - Configure OpenDKIM"
+     echo "    larry	             - Set Larry skin as default"
      echo "    zipdownload           - Configure zipdownload plugin for roundcube"
      echo "    zlib	             - Update php-zlib"
      echo
@@ -821,6 +822,11 @@ EOF
 
 }
 
+configure_larry_skin()
+{
+    sed -i "s/\$config\['skin'\] = '.*';/\$config\['skin'\] = 'larry';/g" /etc/roundcubemail/config.inc.php
+}
+
 configure_zipdownload()
 {
     yum install -y git 
@@ -950,6 +956,17 @@ if [[ $main_configure_dkim == "true" ]] || [ "$1" == "dkim" ] ; then
 fi
 
 # Extras
+
+if [[ $extras_configure_larry_skin == "true" ]] || [ "$1" == "larry" ] ; then
+    if [ "$(grep -c "zipdownload" /etc/roundcubemail/config.inc.php)" == "0" ] ; then
+        echo "info:  start configuring Larry skin as default"
+        configure_larry_skin
+        echo "info:  finished configuring Larry skin as default"
+    else
+        echo "warn:  Larry skin already configured as default, skipping..."
+    fi
+fi
+
 
 if [[ $extras_configure_zipdownload == "true" ]] || [ "$1" == "zipdownload" ] ; then
     if [ "$(grep -c "zipdownload" /etc/roundcubemail/config.inc.php)" == "0" ] ; then
