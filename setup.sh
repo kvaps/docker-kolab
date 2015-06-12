@@ -7,6 +7,7 @@ usage ()
      echo "Arguments:"
      echo "    kolab                 - Configure Kolab"
      echo "    nginx                 - Configure nginx"
+     echo "    amavis                - Configure amavis"
      echo "    ssl                   - Configure SSL using your certs"
      echo "    fail2ban              - Configure Fail2ban"
      echo "    opendkim              - Configure OpenDKIM"
@@ -190,6 +191,18 @@ service \$d start
 tail -f -n1 \$l | grep \$g
 EOF
 
+    cat > /root/wrappers/set_spam_acl.sh << EOF 
+#!/bin/bash
+set_spam_acl ()
+{
+    kolab sam user/%/Spam@$new_domain anyone p
+    sleep 15m 
+    set_spam_acl
+}
+set_spam_acl
+EOF
+
+
     chmod +x wrappers/*
 
     cat > /etc/supervisord.conf << EOF
@@ -198,12 +211,12 @@ nodaemon=true
 
 [program:rsyslog]
 command=/root/wrappers/rsyslog.sh 
-[program:nginx]
-command=/root/wrappers/nginx.sh 
-;[program:httpd]
-;command=/root/wrappers/httpd.sh 
-[program:php-fpm]
-command=/root/wrappers/php-fpm.sh 
+[program:httpd]
+command=/root/wrappers/httpd.sh 
+;[program:nginx]
+;command=/root/wrappers/nginx.sh 
+;[program:php-fpm]
+;command=/root/wrappers/php-fpm.sh 
 [program:mysqld]
 command=/root/wrappers/mysqld.sh 
 [program:dirsrv]
@@ -226,6 +239,8 @@ command=/root/wrappers/kolab-saslauthd.sh
 ;command=/root/wrappers/opendkim.sh 
 ;[program:fail2ban]
 ;command=/root/wrappers/fail2ban.sh 
+;[program:set_spam_acl]
+;command=/root/wrappers/set_spam_acl.sh 
 EOF
 }
 
@@ -554,10 +569,22 @@ EOF
     #chkconfig nginx on
 
     # Comment apache
-    sed '/^[^;]*httpd/s/^/#/' /etc/supervisord.conf
+    sed -i '/^[^;]*httpd/s/^/;/' /etc/supervisord.conf
     # Uncoment nginx and php-fpm
-    sed -i '/^;.* nginx/s/^#//' /etc/supervisord.conf
-    sed -i '/^;.* php-fpm/s/^#//' /etc/supervisord.conf
+    sed -i '/^;.*nginx/s/^;//' /etc/supervisord.conf
+    sed -i '/^;.*php-fpm/s/^;//' /etc/supervisord.conf
+
+}
+
+configure_amavis()
+{
+        
+    sed -i '/^[^#]*$sa_spam_subject_tag/s/^/#/' /etc/amavisd/amavisd.conf
+    sed -i '/^# $recipient_delimiter/s/^# //' /etc/amavisd/amavisd.conf
+    sed -i 's/^\($final_spam_destiny.*= \).*/\1D_PASS;/' /etc/amavisd/amavisd.conf
+    
+    # Uncoment set_spam_acl
+    sed -i '/^;.*set_spam_acl/s/^;//' /etc/supervisord.conf
 
 }
 
@@ -743,7 +770,7 @@ EOF
     fi
 
     # Uncoment fail2ban
-    sed -i '/^;.*fail2ban/s/^#//' /etc/supervisord.conf
+    sed -i '/^;.*fail2ban/s/^;//' /etc/supervisord.conf
 
 
 }
@@ -752,16 +779,19 @@ configure_dkim()
 {
     opendkim-genkey -D /etc/opendkim/keys/ -d $new_domain -s $new_hostname
     
-    chgrp opendkim /etc/opendkim/keys/
+    chgrp opendkim /etc/opendkim/keys/*
     chmod g+r /etc/opendkim/keys/*
-    gpasswd -a postfix opendkim
 
-    sed -i -e 's|^Socket.*|Socket  unix:/var/run/opendkim/opendkim.sock|g' /etc/opendkim.conf
+    if [ "$(grep -c "no_milters" /etc/postfix/master.cf )" == "0" ] ; then 
+        sed -i "/^127\.0\.0\.1\:[10025|10027].*smtpd/a \    -o receive_override_options=no_milters" /etc/postfix/master.cf
+    fi
+
+    sed -i 's/^\(^Mode\).*/\1  sv/' /etc/opendkim.conf
 
     if [ "$(grep -c "^KeyTable" /etc/opendkim.conf)" == "0" ] ; then
         tee -a /etc/opendkim.conf  <<EOF
 KeyTable      /etc/opendkim/KeyTable
-SigningTable  refile:/etc/opendkim/SigningTable
+SigningTable  /etc/opendkim/SigningTable
 X-Header yes 
 EOF
     fi
@@ -776,11 +806,11 @@ EOF
 
     postconf -e milter_default_action=accept
     postconf -e milter_protocol=2
-    postconf -e smtpd_milters=unix:/var/run/opendkim/opendkim.sock
-    postconf -e non_smtpd_milters=unix:/var/run/opendkim/opendkim.sock
+    postconf -e smtpd_milters=inet:localhost:8891
+    postconf -e non_smtpd_milters=inet:localhost:8891
 
     # Uncoment opendkim
-    sed -i '/^;.*opendkim/s/^#//' /etc/supervisord.conf
+    sed -i '/^;.*opendkim/s/^;//' /etc/supervisord.conf
 
 }
 
@@ -817,7 +847,7 @@ print_dkim_keys()
     echo
     echo "Your DNS-record for your DKIM key:"
     echo
-    cat /etc/opendkim/keys/$main_hostname.txt
+    cat /etc/opendkim/keys/$new_hostname.txt
     echo "_______________________________________________________"
 }
 
@@ -840,6 +870,10 @@ fi
 
 if [[ $main_configure_nginx == "true" ]] || [ "$1" = "nginx" ] ; then
     configure_nginx
+fi
+
+if [[ $main_configure_amavis == "true" ]] || [ "$1" = "amavis" ] ; then
+    configure_amavis
 fi
 
 if [[ $main_configure_ssl == "true" ]] || [ "$1" = "ssl" ] ; then

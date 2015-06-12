@@ -32,10 +32,6 @@ ADD certs /root/certs
 
 WORKDIR /root
 
-# Add start and stop scripts
-ADD start.sh /root/start.sh
-ADD stop.sh /root/stop.sh
-
 # Add config and setup script, run it
 ADD settings.ini /root/settings.ini
 ADD setup.sh /root/setup.sh
