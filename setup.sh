@@ -849,88 +849,88 @@ echo "info:  finished configuring Supervisor"
 # Main
 
 if [[ $main_configure_kolab == "true" ]] || [ "$1" = "kolab" ] ; then
-    echo "info:  start configuring Kolab"
     if [ ! -d /etc/dirsrv/slapd-* ] ; then 
+        echo "info:  start configuring Kolab"
         configure_kolab
+        echo "info:  finished configuring Kolab"
     else
-        echo "error: Kolab already configured, skipping..."
+        echo "warn: Kolab already configured, skipping..."
     fi
-    echo "info:  finished configuring Kolab"
 fi
 
 if [[ $main_configure_nginx == "true" ]] || [ "$1" = "nginx" ] ; then
-    echo "info:  start configuring nginx"
-        if [[ $(grep -c Kolab /etc/nginx/conf.d/default.conf) == 0 ]] ; then
-            configure_nginx
-        else
-            echo "warn:  Kolab already configured, skipping..."
-        fi
-    echo "info:  finished configuring nginx"
+    if [[ $(grep -c Kolab /etc/nginx/conf.d/default.conf) == 0 ]] ; then
+        echo "info:  start configuring nginx"
+        configure_nginx
+        echo "info:  finished configuring nginx"
+    else
+        echo "warn:  Kolab already configured, skipping..."
+    fi
 fi
 
 if [[ $main_configure_amavis == "true" ]] || [ "$1" = "amavis" ] ; then
-    echo "info:  start configuring amavis"
-        if [[ $(grep -c \$final_spam_destiny.*D_PASS /etc/amavisd/amavisd.conf) == 0 ]] ; then
-            configure_amavis
-        else
-            echo "warn:  amavis already configured, skipping..."
-        fi
-    echo "info:  finished configuring amavis"
+    if [[ $(grep -c \$final_spam_destiny.*D_PASS /etc/amavisd/amavisd.conf) == 0 ]] ; then
+        echo "info:  start configuring amavis"
+        configure_amavis
+        echo "info:  finished configuring amavis"
+    else
+        echo "warn:  amavis already configured, skipping..."
+    fi
 fi
 
 
 if [[ $main_configure_ssl == "true" ]] || [ "$1" == "ssl" ] ; then
-    echo "info:  start configuring SSL"
     if [ -f /etc/pki/tls/certs/domain.crt ] ; then
         echo "warn:  SSL already configured, but that's nothing wrong, run again..."
     fi
     if [[ ( -f /root/certs/domain.crt ) && ( -f /root/certs/domain.key ) && ( -f /root/certs/ca.pem ) ]]; then
+        echo "info:  start configuring SSL"
         configure_ssl
+        echo "info:  finished configuring SSL"
     else
-        echo "warn:  certs/domain.crt or certs/domain.key or certs/ca.pem not found, skipping..."
+        echo "error: certs/domain.crt or certs/domain.key or certs/ca.pem not found, skipping..."
     fi
-    echo "info:  finished configuring SSL"
 fi
 
 if [[ $main_configure_fail2ban == "true" ]] || [ "$1" = "fail2ban" ] ; then
-    echo "info:  start configuring Fail2ban"
     if [ "$(grep -c "kolab" /etc/fail2ban/jail.conf)" == "0" ] ; then
+        echo "info:  start configuring Fail2ban"
         configure_fail2ban
+        echo "info:  finished configuring Fail2ban"
     else
         echo "warn:  Fail2ban already configured, skipping..."
     fi
-    echo "info:  finished configuring Fail2ban"
 fi
 
 if [[ $main_configure_dkim == "true" ]] || [ "$1" == "dkim" ] ; then
-    echo "info:  start configuring OpenDKIM"
     if [ "$(grep -c -ve "^#\|^[[:space:]]*$"  /etc/opendkim/KeyTable )" == "0" ] ; then
+        echo "info:  start configuring OpenDKIM"
         configure_dkim
+        echo "info:  finished configuring OpenDKIM"
     else
         echo "warn:  OpenDKIM already configured, skipping..."
-    echo "info:  finished configuring OpenDKIM"
 fi
 
 # Extras
 
 if [[ $extras_configure_zipdownload == "true" ]] || [ "$1" == "zipdownload" ] ; then
-    echo "info:  start configuring zipdownload plugin"
     if [ "$(grep -c "zipdownload" /etc/roundcubemail/config.inc.php)" == "0" ] ; then
+        echo "info:  start configuring zipdownload plugin"
         configure_zipdownload
+        echo "info:  finished configuring zipdownload plugin"
     else
         echo "warn:  zipdownload plugin already configured, skipping..."
     fi
-    echo "info:  finished configuring zipdownload plugin"
 fi
 
 if [[ $extras_configure_zlib == "true" ]] || [ "$1" == "zlib" ] ; then
-    echo "info:  start configuring php-zlib"
     if [ "$(grep -c "extension=zip.so" /etc/php.ini)" == "0" ] ; then
+        echo "info:  start configuring php-zlib"
         configure_zlib
+        echo "info:  finished configuring php-zlib"
     else
         echo "warn:  php-zlib already configured, skipping..."
     fi
-    echo "info:  finished configuring php-zlib"
 fi
 
 # Print functions
