@@ -50,9 +50,8 @@ set_hostname()
 
 configure_supervisor()
 {
-    mkdir -p /root/wrappers/
 
-    cat > /root/wrappers/rsyslog.sh << EOF
+    cat > /bin/rsyslog-wrapper.sh << EOF
 #!/bin/bash
 d=rsyslog
 l=/var/log/messages
@@ -62,7 +61,7 @@ service \$d start
 tail -f -n 1 \$l | grep \$g
 EOF
 
-    cat > /root/wrappers/nginx.sh << EOF
+    cat > /bin/nginx-wrapper.sh << EOF
 #!/bin/bash
 d=nginx
 l=/var/log/nginx/error.log
@@ -71,7 +70,7 @@ service \$d start
 tail -f -n1 \$l
 EOF
 
-    cat > /root/wrappers/httpd.sh << EOF
+    cat > /bin/httpd-wrapper.sh << EOF
 #!/bin/bash
 d=httpd
 l=/var/log/httpd/error_log
@@ -79,7 +78,7 @@ trap '{ service \$d stop; exit 0; }' EXIT
 service \$d start ; tail -f -n1 \$l
 EOF
 
-    cat > /root/wrappers/php-fpm.sh << EOF
+    cat > /bin/php-fpm-wrapper.sh << EOF
 #!/bin/bash
 d=php-fpm
 l=/var/log/php-fpm/error.log
@@ -88,7 +87,7 @@ service \$d start
 tail -f -n1 \$l
 EOF
 
-    cat > /root/wrappers/mysqld.sh << EOF
+    cat > /bin/mysqld-wrapper.sh << EOF
 #!/bin/bash
 d=mysqld
 l=/var/log/mysqld.log
@@ -97,7 +96,7 @@ service \$d start
 tail -f -n1 \$l
 EOF
 
-    cat > /root/wrappers/dirsrv.sh << EOF
+    cat > /bin/dirsrv-wrapper.sh << EOF
 #!/bin/bash
 d=dirsrv
 l=/var/log/dirsrv/slapd-*/errors
@@ -106,7 +105,7 @@ service \$d start
 tail -f -n1 \$l
 EOF
 
-    cat > /root/wrappers/postfix.sh << EOF
+    cat > /bin/postfix-wrapper.sh << EOF
 #!/bin/bash
 d=postfix
 l=/var/log/maillog
@@ -116,7 +115,7 @@ service \$d start
 tail -f -n1 \$l | grep \$g
 EOF
 
-    cat > /root/wrappers/cyrus-imapd.sh << EOF
+    cat > /bin/cyrus-imapd-wrapper.sh << EOF
 #!/bin/bash
 d=cyrus-imapd
 l=/var/log/maillog
@@ -126,7 +125,7 @@ service \$d start
 tail -f -n1 \$l
 EOF
 
-    cat > /root/wrappers/amavisd.sh << EOF
+    cat > /bin/amavisd-wrapper.sh << EOF
 #!/bin/bash
 d=amavisd
 l=/var/log/maillog
@@ -136,7 +135,7 @@ service \$d start
 tail -f -n1 \$l | grep \$g
 EOF
 
-    cat > /root/wrappers/clamd.sh << EOF
+    cat > /bin/clamd-wrapper.sh << EOF
 #!/bin/bash
 d=clamd
 l=/var/log/clamav/clamd.log
@@ -145,7 +144,7 @@ service \$d start
 tail -f -n1 \$l
 EOF
 
-    cat > /root/wrappers/wallace.sh << EOF
+    cat > /bin/wallace-wrapper.sh << EOF
 #!/bin/bash
 d=wallace
 trap '{ service \$d stop; exit 0; }' EXIT
@@ -153,7 +152,7 @@ service \$d start
 sleep infinity
 EOF
 
-    cat > /root/wrappers/kolabd.sh << EOF
+    cat > /bin/kolabd-wrapper.sh << EOF
 #!/bin/bash
 d=kolabd
 l=/var/log/kolab/pykolab.log
@@ -163,7 +162,7 @@ service \$d start
 tail -f -n1 \$l
 EOF
 
-    cat > /root/wrappers/kolab-saslauthd.sh << EOF
+    cat > /bin/kolab-saslauthd-wrapper.sh << EOF
 #!/bin/bash
 d=kolab-saslauthd
 trap '{ sleep 2; service \$d stop; exit 0; }' EXIT
@@ -171,7 +170,7 @@ service \$d start
 sleep infinity
 EOF
 
-    cat > /root/wrappers/opendkim.sh << EOF
+    cat > /bin/opendkim-wrapper.sh << EOF
 #!/bin/bash
 d=opendkim
 l=/var/log/maillog
@@ -181,7 +180,7 @@ service \$d start
 tail -f -n1 \$l | grep \$g
 EOF
 
-    cat > /root/wrappers/fail2ban.sh << EOF
+    cat > /bin/fail2ban-wrapper.sh << EOF
 #!/bin/bash
 d=fail2ban
 l=/var/log/messages
@@ -191,7 +190,7 @@ service \$d start
 tail -f -n1 \$l | grep \$g
 EOF
 
-    cat > /root/wrappers/set_spam_acl.sh << EOF 
+    cat > /bin/set_spam_acl.sh << EOF 
 #!/bin/bash
 set_spam_acl ()
 {
@@ -203,44 +202,46 @@ set_spam_acl
 EOF
 
 
-    chmod +x wrappers/*
+
+    chmod +x /bin/*-wrapper.sh
+    chmod +x /bin/set_spam_acl.sh
 
     cat > /etc/supervisord.conf << EOF
 [supervisord]
 nodaemon=true
 
 [program:rsyslog]
-command=/root/wrappers/rsyslog.sh 
+command=/bin/rsyslog-wrapper.sh 
 [program:httpd]
-command=/root/wrappers/httpd.sh 
+command=/bin/httpd-wrapper.sh 
 ;[program:nginx]
-;command=/root/wrappers/nginx.sh 
+;command=/bin/nginx-wrapper.sh 
 ;[program:php-fpm]
-;command=/root/wrappers/php-fpm.sh 
+;command=/bin/php-fpm-wrapper.sh 
 [program:mysqld]
-command=/root/wrappers/mysqld.sh 
+command=/bin/mysqld-wrapper.sh 
 [program:dirsrv]
-command=/root/wrappers/dirsrv.sh 
+command=/bin/dirsrv-wrapper.sh 
 [program:postfix]
-command=/root/wrappers/postfix.sh 
+command=/bin/postfix-wrapper.sh 
 [program:cyrus-imapd]
-command=/root/wrappers/cyrus-imapd.sh 
+command=/bin/cyrus-imapd-wrapper.sh 
 [program:amavisd]
-command=/root/wrappers/amavisd.sh 
+command=/bin/amavisd-wrapper.sh 
 [program:clamd]
-command=/root/wrappers/clamd.sh 
+command=/bin/clamd-wrapper.sh 
 [program:wallace]
-command=/root/wrappers/wallace.sh 
+command=/bin/wallace-wrapper.sh 
 [program:kolabd]
-command=/root/wrappers/kolabd.sh 
+command=/bin/kolabd-wrapper.sh 
 [program:kolab-saslauthd]
-command=/root/wrappers/kolab-saslauthd.sh 
+command=/bin/kolab-saslauthd-wrapper.sh 
 ;[program:opendkim]
-;command=/root/wrappers/opendkim.sh 
+;command=/bin/opendkim-wrapper.sh 
 ;[program:fail2ban]
-;command=/root/wrappers/fail2ban.sh 
+;command=/bin/fail2ban-wrapper.sh 
 ;[program:set_spam_acl]
-;command=/root/wrappers/set_spam_acl.sh 
+;command=/bin/set_spam_acl.sh 
 EOF
 }
 
@@ -835,9 +836,9 @@ print_passwords()
     echo "======================================================="
     echo "Please save your passwords:                            "
     echo "======================================================="
-    cat /root/settings.ini | grep password
+    cat /etc/settings.ini | grep password
     echo
-    echo "            (You can also see it in /root/settings.ini)"
+    echo "            (You can also see it in /etc/settings.ini)"
     echo "_______________________________________________________"
 }
 
@@ -858,7 +859,7 @@ if [ "$1" = "--help" ] || [ "$1" = "-h" ] || [ "$1" = "help" ] ; then
     usage
 fi
 
-get_config /root/settings.ini
+get_config /etc/settings.ini
 
 configure_supervisor
 
