@@ -10,7 +10,7 @@ usage ()
      echo "    amavis                - Configure amavis"
      echo "    ssl                   - Configure SSL using your certs"
      echo "    fail2ban              - Configure Fail2ban"
-     echo "    opendkim              - Configure OpenDKIM"
+     echo "    dkim                  - Configure OpenDKIM"
      echo "    zipdownload           - Configure zipdownload plugin for roundcube"
      echo "    zlib	             - Update php-zlib"
      echo
@@ -591,9 +591,6 @@ configure_amavis()
 
 configure_ssl()
 {
-
-    if [[ ( -f /root/certs/domain.crt ) && ( -f /root/certs/domain.key ) && ( -f /root/certs/ca.pem ) ]]; then
-
         mv /root/certs/domain.key /etc/pki/tls/private/domain.key
         mv /root/certs/domain.crt /etc/pki/tls/certs/domain.crt
         mv /root/certs/ca.pem /etc/pki/tls/certs/ca.pem
@@ -670,9 +667,6 @@ EOF
 \$config['force_https'] = true;
 EOF
 
-else
-    echo "certs/domain.crt or certs/domain.key or certs/ca.pem not found, skipping..."
-fi
 
 }
 
@@ -828,7 +822,7 @@ configure_zlib()
 {
     yum -y install php-devel zlib-devel gcc pcre-devel
     pecl install zip
-    if [ "$(grep -c "extension=zip.so" /etc/php.ini)" == "0" ] ; then echo extension=zip.so >> /etc/php.ini ; fi
+    echo extension=zip.so >> /etc/php.ini
 }
 
 print_passwords()
@@ -861,42 +855,100 @@ fi
 
 get_config /etc/settings.ini
 
-configure_supervisor
+
+echo "info:  start configuring Supervisor"
+if [ "$(grep -c "kolab" /etc/supervisord.conf)" == "0" ] ; then
+    configure_supervisor
+else
+    echo "warn:  Supervisor already configured, skipping..."
+fi
+echo "info:  finished configuring Supervisor"
 
 # Main
 
 if [[ $main_configure_kolab == "true" ]] || [ "$1" = "kolab" ] ; then
-    configure_kolab
+    echo "info:  start configuring Kolab"
+    if [ ! -d /etc/dirsrv/slapd-* ] ; then 
+        configure_kolab
+    else
+        echo "error: Kolab already configured, skipping..."
+    fi
+    echo "info:  finished configuring Kolab"
 fi
 
 if [[ $main_configure_nginx == "true" ]] || [ "$1" = "nginx" ] ; then
-    configure_nginx
+    echo "info:  start configuring nginx"
+        if [[ $(grep -c Kolab /etc/nginx/conf.d/default.conf) == 0 ]] ; then
+            configure_nginx
+        else
+            echo "warn:  Kolab already configured, skipping..."
+        fi
+    echo "info:  finished configuring nginx"
 fi
 
 if [[ $main_configure_amavis == "true" ]] || [ "$1" = "amavis" ] ; then
-    configure_amavis
+    echo "info:  start configuring amavis"
+        if [[ $(grep -c \$final_spam_destiny.*D_PASS /etc/amavisd/amavisd.conf) == 0 ]] ; then
+            configure_amavis
+        else
+            echo "warn:  amavis already configured, skipping..."
+        fi
+    echo "info:  finished configuring amavis"
 fi
 
-if [[ $main_configure_ssl == "true" ]] || [ "$1" = "ssl" ] ; then
-    configure_ssl
+
+if [[ $main_configure_ssl == "true" ]] || [ "$1" == "ssl" ] ; then
+    echo "info:  start configuring SSL"
+    if [ -f /etc/pki/tls/certs/domain.crt ] ; then
+        echo "warn:  SSL already configured, but that's nothing wrong, run again..."
+    fi
+    if [[ ( -f /root/certs/domain.crt ) && ( -f /root/certs/domain.key ) && ( -f /root/certs/ca.pem ) ]]; then
+        configure_ssl
+    else
+        echo "warn:  certs/domain.crt or certs/domain.key or certs/ca.pem not found, skipping..."
+    fi
+    echo "info:  finished configuring SSL"
 fi
 
 if [[ $main_configure_fail2ban == "true" ]] || [ "$1" = "fail2ban" ] ; then
-    configure_fail2ban
+    echo "info:  start configuring Fail2ban"
+    if [ "$(grep -c "kolab" /etc/fail2ban/jail.conf)" == "0" ] ; then
+        configure_fail2ban
+    else
+        echo "warn:  Fail2ban already configured, skipping..."
+    fi
+    echo "info:  finished configuring Fail2ban"
 fi
 
-if [[ $main_configure_dkim == "true" ]] || [ "$1" = "dkim" ] ; then
-    configure_dkim
+if [[ $main_configure_dkim == "true" ]] || [ "$1" == "dkim" ] ; then
+    echo "info:  start configuring OpenDKIM"
+    if [ "$(grep -c -ve "^#\|^[[:space:]]*$"  /etc/opendkim/KeyTable )" == "0" ] ; then
+        configure_dkim
+    else
+        echo "warn:  OpenDKIM already configured, skipping..."
+    echo "info:  finished configuring OpenDKIM"
 fi
 
 # Extras
 
-if [[ $extras_configure_zipdownload == "true" ]] || [ "$1" = "zipdownload" ] ; then
-    configure_zipdownload
+if [[ $extras_configure_zipdownload == "true" ]] || [ "$1" == "zipdownload" ] ; then
+    echo "info:  start configuring zipdownload plugin"
+    if [ "$(grep -c "zipdownload" /etc/roundcubemail/config.inc.php)" == "0" ] ; then echo 1 ; fi
+        configure_zipdownload
+    else
+        echo "warn:  zipdownload plugin already configured, skipping..."
+    fi
+    echo "info:  finished configuring zipdownload plugin"
 fi
 
-if [[ $extras_configure_zlib == "zlib" ]] || [ "$1" = "zlib" ] ; then
-    configure_zlib
+if [[ $extras_configure_zlib == "true" ]] || [ "$1" == "zlib" ] ; then
+    echo "info:  start configuring php-zlib"
+    if [ "$(grep -c "extension=zip.so" /etc/php.ini)" == "0" ] ; then
+        configure_zlib
+    else
+        echo "warn:  php-zlib already configured, skipping..."
+    fi
+    echo "info:  finished configuring php-zlib"
 fi
 
 # Print functions
