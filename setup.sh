@@ -297,14 +297,14 @@ EOF
     # fix bug: "unable to open Berkeley db /etc/sasldb2: No such file or directory"
     echo password | saslpasswd2 sasldb2 && chown cyrus:saslauth /etc/sasldb2
 
+    # SSL by default in apache
+    sed -i -e 's/<Directory \/>/<Directory \/>\n    RedirectMatch \^\/$ \/webmail\//g' /etc/httpd/conf/httpd.conf
+
 }
 
 configure_nginx() {
     # This section is made using the official kolab wiki-page:
     # https://docs.kolab.org/howtos/nginx-webserver.html
-
-    service httpd stop
-    #chkconfig httpd off
 
     rm -f /etc/php-fpm.d/www.conf
 
@@ -564,11 +564,6 @@ EOF
 
     sed -i "s/\$config\['assets_path'\] = '.*';/\$config\['assets_path'\] = '\/assets\/';/g" /etc/roundcubemail/config.inc.php
 
-    service php-fpm start
-    #chkconfig php-fpm on
-    service nginx start
-    #chkconfig nginx on
-
     # Comment apache
     sed -i '/^[^;]*httpd/s/^/;/' /etc/supervisord.conf
     # Uncoment nginx and php-fpm
@@ -591,29 +586,28 @@ configure_amavis()
 
 configure_ssl()
 {
-        mv /root/certs/domain.key /etc/pki/tls/private/domain.key
-        mv /root/certs/domain.crt /etc/pki/tls/certs/domain.crt
-        mv /root/certs/ca.pem /etc/pki/tls/certs/ca.pem
-        
-        # Create certificate bundles
-        cat /etc/pki/tls/certs/domain.crt /etc/pki/tls/private/domain.key /etc/pki/tls/certs/ca.pem > /etc/pki/tls/private/domain.bundle.pem
-        cat /etc/pki/tls/certs/domain.crt /etc/pki/tls/certs/ca.pem > /etc/pki/tls/certs/domain.bundle.pem
-        cat /etc/pki/tls/certs/ca.pem > /etc/pki/tls/certs/domain.ca-chain.pem
-        # Set access rights
-        chown -R root:mail /etc/pki/tls/private
-        chmod 600 /etc/pki/tls/private/domain.key
-        chmod 750 /etc/pki/tls/private
-        chmod 640 /etc/pki/tls/private/*
-        # Add CA to system’s CA bundle
-        cat /etc/pki/tls/certs/ca.pem >> /etc/pki/tls/certs/ca-bundle.crt
+    mv /root/certs/domain.key /etc/pki/tls/private/domain.key
+    mv /root/certs/domain.crt /etc/pki/tls/certs/domain.crt
+    mv /root/certs/ca.pem /etc/pki/tls/certs/ca.pem
 
-        # Configure apache for SSL
-        
-        # Set your ssl certificates 
-        sed -i -e '/SSLCertificateFile \/etc\/pki/c\SSLCertificateFile /etc/pki/tls/certs/domain.crt' /etc/httpd/conf.d/ssl.conf
-        sed -i -e '/SSLCertificateKeyFile \/etc\/pki/c\SSLCertificateKeyFile /etc/pki/tls/private/domain.key' /etc/httpd/conf.d/ssl.conf
-        sed -i -e '/SSLCertificateChainFile \/etc\/pki/c\SSLCertificateChainFile /etc/pki/tls/certs/domain.ca-chain.pem' /etc/httpd/conf.d/ssl.conf
-        if [ "$(grep -c "webmail" /etc/httpd/conf/httpd.conf)" == "0" ] ; then sed -i -e 's/<Directory \/>/<Directory \/>\n    RedirectMatch \^\/$ \/webmail\//g' /etc/httpd/conf/httpd.conf; fi
+    # Create certificate bundles
+    cat /etc/pki/tls/certs/domain.crt /etc/pki/tls/private/domain.key /etc/pki/tls/certs/ca.pem > /etc/pki/tls/private/domain.bundle.pem
+    cat /etc/pki/tls/certs/domain.crt /etc/pki/tls/certs/ca.pem > /etc/pki/tls/certs/domain.bundle.pem
+    cat /etc/pki/tls/certs/ca.pem > /etc/pki/tls/certs/domain.ca-chain.pem
+    # Set access rights
+    chown -R root:mail /etc/pki/tls/private
+    chmod 600 /etc/pki/tls/private/domain.key
+    chmod 750 /etc/pki/tls/private
+    chmod 640 /etc/pki/tls/private/*
+    # Add CA to system’s CA bundle
+    cat /etc/pki/tls/certs/ca.pem >> /etc/pki/tls/certs/ca-bundle.crt
+
+    # Configure apache for SSL
+
+    # Set your ssl certificates 
+    sed -i -e '/SSLCertificateFile \/etc\/pki/c\SSLCertificateFile /etc/pki/tls/certs/domain.crt' /etc/httpd/conf.d/ssl.conf
+    sed -i -e '/SSLCertificateKeyFile \/etc\/pki/c\SSLCertificateKeyFile /etc/pki/tls/private/domain.key' /etc/httpd/conf.d/ssl.conf
+    sed -i -e '/SSLCertificateChainFile \/etc\/pki/c\SSLCertificateChainFile /etc/pki/tls/certs/domain.ca-chain.pem' /etc/httpd/conf.d/ssl.conf
         
         # Create a vhost for http (:80) to redirect everything to https
         cat >> /etc/httpd/conf/httpd.conf << EOF
@@ -625,11 +619,8 @@ configure_ssl()
 EOF
 
         # Configuration nginx for SSL
-        #
-        if [ -f /etc/nginx/nginx.conf ]; then
-            sed -i -e '/    ssl_certificate \/etc\/pki/c\    ssl_certificate /etc/pki/tls/certs/domain.bundle.pem;' /etc/nginx/conf.d/default.conf
-            sed -i -e '/    ssl_certificate_key \/etc\/pki/c\    ssl_certificate_key /etc/pki/tls/private/domain.key;' /etc/nginx/conf.d/default.conf
-        fi
+        sed -i -e '/    ssl_certificate \/etc\/pki/c\    ssl_certificate /etc/pki/tls/certs/domain.bundle.pem;' /etc/nginx/conf.d/default.conf
+        sed -i -e '/    ssl_certificate_key \/etc\/pki/c\    ssl_certificate_key /etc/pki/tls/private/domain.key;' /etc/nginx/conf.d/default.conf
     
         #Configure Cyrus for SSL
         sed -r -i \
@@ -777,27 +768,18 @@ configure_dkim()
     chgrp opendkim /etc/opendkim/keys/*
     chmod g+r /etc/opendkim/keys/*
 
-    if [ "$(grep -c "no_milters" /etc/postfix/master.cf )" == "0" ] ; then 
         sed -i "/^127\.0\.0\.1\:[10025|10027].*smtpd/a \    -o receive_override_options=no_milters" /etc/postfix/master.cf
-    fi
 
     sed -i 's/^\(^Mode\).*/\1  sv/' /etc/opendkim.conf
 
-    if [ "$(grep -c "^KeyTable" /etc/opendkim.conf)" == "0" ] ; then
         tee -a /etc/opendkim.conf  <<EOF
 KeyTable      /etc/opendkim/KeyTable
 SigningTable  /etc/opendkim/SigningTable
 X-Header yes 
 EOF
-    fi
 
-    if [ "$(grep -c "$new_domain" /etc/opendkim/KeyTable)" == "0" ] ; then
         echo $(echo $main_hostname | sed s/\\./._domainkey./) $new_domain:$new_hostname:$(ls /etc/opendkim/keys/*.private) | tee -a /etc/opendkim/KeyTable
-    fi
-
-    if [ "$(grep -c "$new_domain" /etc/opendkim/SigningTable)" == "0" ] ; then
         echo $new_domain $(echo $main_hostname | sed s/\\./._domainkey./) | tee -a /etc/opendkim/SigningTable
-    fi    
 
     postconf -e milter_default_action=accept
     postconf -e milter_protocol=2
@@ -815,7 +797,7 @@ configure_zipdownload()
     git clone https://github.com/roundcube/roundcubemail/ --depth 1 /tmp/roundcube
     mv /tmp/roundcube/plugins/zipdownload/ /usr/share/roundcubemail/plugins/
     rm -rf /tmp/roundcube/
-    if [ "$(grep -c "zipdownload" /etc/roundcubemail/config.inc.php)" == "0" ] ; then sed -i "/'contextmenu',/a \            'zipdownload'," /etc/roundcubemail/config.inc.php ; fi
+    sed -i "/'contextmenu',/a \            'zipdownload'," /etc/roundcubemail/config.inc.php
 }
 
 configure_zlib()
@@ -933,7 +915,7 @@ fi
 
 if [[ $extras_configure_zipdownload == "true" ]] || [ "$1" == "zipdownload" ] ; then
     echo "info:  start configuring zipdownload plugin"
-    if [ "$(grep -c "zipdownload" /etc/roundcubemail/config.inc.php)" == "0" ] ; then echo 1 ; fi
+    if [ "$(grep -c "zipdownload" /etc/roundcubemail/config.inc.php)" == "0" ] ; then
         configure_zipdownload
     else
         echo "warn:  zipdownload plugin already configured, skipping..."
