@@ -6,8 +6,9 @@ usage ()
      echo
      echo "Arguments:"
      echo "    kolab                 - Configure Kolab"
-     echo "    nginx                 - Configure nginx"
      echo "    amavis                - Configure amavis"
+     echo "    nginx                 - Configure nginx"
+     echo "    nginx_cache           - Configure nginx caching"
      echo "    ssl                   - Configure SSL using your certs"
      echo "    fail2ban              - Configure Fail2ban"
      echo "    dkim                  - Configure OpenDKIM"
@@ -201,8 +202,6 @@ set_spam_acl ()
 set_spam_acl
 EOF
 
-
-
     chmod +x /bin/*-wrapper.sh
     chmod +x /bin/set_spam_acl.sh
 
@@ -302,7 +301,8 @@ EOF
 
 }
 
-configure_nginx() {
+configure_nginx()
+{
     # This section is made using the official kolab wiki-page:
     # https://docs.kolab.org/howtos/nginx-webserver.html
 
@@ -572,6 +572,37 @@ EOF
 
 }
 
+configure_nginx_cache()
+{
+    #Adding open file cache to nginx
+    sed -i '/include \/etc\/nginx\/conf\.d\/\*.conf;/{
+    N
+    a \    open_file_cache max=16384 inactive=5m;
+    a \    open_file_cache_valid 90s; 
+    a \    open_file_cache_min_uses 2;
+    a \    open_file_cache_errors on;
+    }' /etc/nginx/nginx.conf
+
+
+    #Adding fastcgi_cache to nginx
+    mkdir -p /var/lib/nginx/fastcgi/
+    chown -R nginx:nginx /var/lib/nginx/fastcgi/
+    chmod -R 700 /var/lib/nginx/fastcgi/
+
+    sed -i '/include \/etc\/nginx\/conf\.d\/\*.conf;/{
+    N
+    a \    fastcgi_cache_key "$scheme$request_method$host$request_uri";
+    a \    fastcgi_cache_use_stale error timeout invalid_header http_500;
+    a \    fastcgi_cache_valid 200 302 304 10m;
+    a \    fastcgi_cache_valid 301 1h; 
+    a \    fastcgi_cache_min_uses 2; 
+    }' /etc/nginx/nginx.conf
+
+    sed -i '1ifastcgi_cache_path /var/lib/nginx/fastcgi/ levels=1:2 keys_zone=key-zone-name:16m max_size=256m inactive=1d;' /etc/nginx/conf.d/default.conf
+
+    sed -i '/ssl_certificate_key/a \    fastcgi_cache key-zone-name;' /etc/nginx/conf.d/default.conf
+}
+
 configure_amavis()
 {
         
@@ -609,8 +640,8 @@ configure_ssl()
     sed -i -e '/SSLCertificateKeyFile \/etc\/pki/c\SSLCertificateKeyFile /etc/pki/tls/private/domain.key' /etc/httpd/conf.d/ssl.conf
     sed -i -e '/SSLCertificateChainFile \/etc\/pki/c\SSLCertificateChainFile /etc/pki/tls/certs/domain.ca-chain.pem' /etc/httpd/conf.d/ssl.conf
         
-        # Create a vhost for http (:80) to redirect everything to https
-        cat >> /etc/httpd/conf/httpd.conf << EOF
+    # Create a vhost for http (:80) to redirect everything to https
+    cat >> /etc/httpd/conf/httpd.conf << EOF
 
 <VirtualHost _default_:80>
     RewriteEngine On
@@ -758,7 +789,6 @@ EOF
     # Uncoment fail2ban
     sed -i '/^;.*fail2ban/s/^;//' /etc/supervisord.conf
 
-
 }
 
 configure_dkim()
@@ -828,9 +858,6 @@ print_dkim_keys()
     echo "_______________________________________________________"
 }
 
-
-
-
 if [ "$1" = "--help" ] || [ "$1" = "-h" ] || [ "$1" = "help" ] ; then 
     usage
 fi
@@ -864,7 +891,17 @@ if [[ $main_configure_nginx == "true" ]] || [ "$1" = "nginx" ] ; then
         configure_nginx
         echo "info:  finished configuring nginx"
     else
-        echo "warn:  Kolab already configured, skipping..."
+        echo "warn:  nginx already configured, skipping..."
+    fi
+fi
+
+if [[ $main_configure_nginx_cache == "true" ]] || [ "$1" = "nginx_cache" ] ; then
+    if [[ $(grep -c open_file_cache /etc/nginx/nginx.conf) == 0 ]] ; then
+        echo "info:  start configuring nginx cacheing"
+        configure_nginx_cache
+        echo "info:  finished configuring nginx caching"
+    else
+        echo "warn:  nginx cacheing already configured, skipping..."
     fi
 fi
 
@@ -909,6 +946,7 @@ if [[ $main_configure_dkim == "true" ]] || [ "$1" == "dkim" ] ; then
         echo "info:  finished configuring OpenDKIM"
     else
         echo "warn:  OpenDKIM already configured, skipping..."
+    fi
 fi
 
 # Extras
