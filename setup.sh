@@ -50,6 +50,69 @@ set_hostname()
     sed -e "s/$old_hostname.*$/$main_hostname\ $new_hostname/g" /etc/hosts | tee /etc/hosts
 }
 
+fix_fdirs()
+{
+    # create folders on attached volumes
+    mkdir -p /var/spool/amavisd
+    mkdir -p /var/spool/imap
+    mkdir -p /var/spool/mail
+    mkdir -p /var/spool/opendkim
+    mkdir -p /var/spool/postfix
+    mkdir -p /var/spool/pykolab
+    
+    mkdir -p /var/log/chwala
+    mkdir -p /var/log/clamav
+    mkdir -p /var/log/dirsrv
+    mkdir -p /var/log/httpd
+    mkdir -p /var/log/iRony
+    mkdir -p /var/log/kolab
+    mkdir -p /var/log/kolab-freebusy
+    mkdir -p /var/log/kolab-syncroton
+    mkdir -p /var/log/kolab-webadmin
+    mkdir -p /var/log/nginx
+    mkdir -p /var/log/php-fpm
+    mkdir -p /var/log/roundcubemail
+    mkdir -p /var/log/supervisor
+    
+    
+    # create new log files
+    touch /var/log/maillog
+    touch /var/log/messages
+    touch /var/log/mysqld.log
+    touch /var/log/php-fpm/error.log
+    touch /var/log/httpd/error_log
+    touch /var/log/nginx/error.log
+    touch /var/log/kolab/pykolab.log
+    touch /var/log/clamav/clamd.log
+    touch /var/log/roundcubemail/userlogins
+    touch /var/log/iRony/userlogins
+    touch /var/log/chwala/userlogins
+    touch /var/log/kolab-syncroton/userlogins
+
+    # fix permissons
+    chown cyrus:mail /var/lib/imap
+    chown mysql:mysql /var/lib/mysql
+    
+    chown amavis:amavis /var/spool/amavisd
+    chown cyrus:mail /var/spool/imap
+    chown root:mail /var/spool/mail
+    chown opendkim:opendkim /var/spool/opendkim
+    chown kolab:kolab /var/spool/pykolab
+    
+    chown mysql:mysql /var/log/mysqld.log
+    chown apache:apache /var/log/chwala
+    chown clam:clam /var/log/clamav
+    chown apache:apache /var/log/iRony
+    chown kolab:kolab-n /var/log/kolab
+    chown root:apache /var/log/kolab-freebusy
+    chown apache:apache /var/log/kolab-syncroton
+    chown apache:apache /var/log/kolab-webadmin
+    chown nginx:nginx /var/log/nginx
+    chown apache:root /var/log/php-fpm
+    chown root:apache /var/log/roundcubemail
+    chown apache:apache /var/log/syncroton
+}
+
 configure_supervisor()
 {
 
@@ -696,13 +759,6 @@ EOF
 configure_fail2ban()
 {
 
-touch /var/log/maillog
-mkdir -p /var/log/roundcubemail && touch /var/log/roundcubemail/userlogins ; chown apache:apache -R /var/log/roundcubemail
-mkdir -p /var/log/syncroton && touch /var/log/syncroton/userlogins ; chown apache:apache -R /var/log/syncroton
-mkdir -p /var/log/chwala && touch /var/log/chwala/userlogins ; chown apache:apache -R /var/log/chwala
-mkdir -p /var/log/iRony && touch /var/log/iRony/userlogins ; chown apache:apache -R /var/log/iRony
-
-
     cat > /etc/fail2ban/filter.d/kolab-cyrus.conf << EOF
 [Definition]
 failregex = (imaps|pop3s)\[[0-9]*\]: badlogin: \[<HOST>\] (plain|PLAIN|login|plaintext) .*
@@ -781,7 +837,7 @@ maxretry = 5
 enabled = true
 filter  = kolab-syncroton
 action  = iptables-multiport[name=kolab-syncroton,port="http,https"]
-logpath = /var/log/syncroton/userlogins
+logpath = /var/log/kolab-syncroton/userlogins
 maxretry = 5
 EOF
 
@@ -870,14 +926,17 @@ fi
 
 get_config /etc/settings.ini
 
+echo "info:  start fixing folders and files on attached volumes"
+fix_fdirs
+echo "info:  finished fixing folders and files on attached volumes"
 
-echo "info:  start configuring Supervisor"
 if [ "$(grep -c "kolab" /etc/supervisord.conf)" == "0" ] ; then
+    echo "info:  start configuring Supervisor"
     configure_supervisor
+    echo "info:  finished configuring Supervisor"
 else
     echo "warn:  Supervisor already configured, skipping..."
 fi
-echo "info:  finished configuring Supervisor"
 
 # Main
 

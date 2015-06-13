@@ -30,12 +30,15 @@ RUN yum -y install supervisor expect mod_ssl nginx php-fpm opendkim fail2ban
 # Add domain certificates and CA
 ADD certs /root/certs
 
+# MySQL LDAP IMAP
+VOLUME ["/var/lib/mysql/", "/var/lib/dirsrv/", "/var/lib/imap", "/var/lib/spamassassin", "/var/lib/clamav/", "/var/spool", "/var/log"]
+
 WORKDIR /root
 
 # Add config and setup script, run it
 ADD settings.ini /etc/settings.ini
 ADD setup.sh /bin/setup.sh
-RUN /bin/setup.sh
+#RUN /bin/setup.sh
  
 # Ports: HTTP HTTPS SMTP SMTPS POP3 POP3S IMAP IMAPS SIEVE
 EXPOSE  80 443 25 587 143 993 110 995 4190
