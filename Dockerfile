@@ -38,7 +38,7 @@ WORKDIR /root
 # Add config and setup script, run it
 ADD settings.ini /etc/settings.ini
 ADD setup.sh /bin/setup.sh
-#RUN /bin/setup.sh
+ENTRYPOINT ["/bin/setup.sh"]
  
 # Ports: HTTP HTTPS SMTP SMTPS POP3 POP3S IMAP IMAPS SIEVE
 EXPOSE  80 443 25 587 143 993 110 995 4190

@@ -41,6 +41,8 @@ get_config()
 
 fix_fdirs()
 {
+    echo "info:  start fixing folders and files on attached volumes"
+
     # bind service folders to /data volume
     mkdir -p /data/mysql
     mkdir -p /data/dirsrv
@@ -116,10 +118,13 @@ fix_fdirs()
     chown nginx:nginx /var/log/nginx
     chown apache:root /var/log/php-fpm
     chown root:apache /var/log/roundcubemail
+
+    echo "info:  finished fixing folders and files on attached volumes"
 }
 
 configure_supervisor()
 {
+    echo "info:  start configuring Supervisor"
 
     cat > /bin/rsyslog-wrapper.sh << EOF
 #!/bin/bash
@@ -311,12 +316,16 @@ command=/bin/kolab-saslauthd-wrapper.sh
 ;[program:set_spam_acl]
 ;command=/bin/set_spam_acl.sh 
 EOF
+
+    echo "info:  finished configuring Supervisor"
 }
 
 configure_kolab()
 {
-    adduser dirsrv
-    expect <<EOF
+    if [ ! -d /etc/dirsrv/slapd-* ] ; then 
+        echo "info:  start configuring Kolab"
+        adduser dirsrv
+        expect <<EOF
 spawn   setup-kolab --fqdn=$(hostname -f) --timezone=$kolab_Timezone_ID
 set timeout 300
 expect  "Administrator password *:"
@@ -361,22 +370,29 @@ expect  "Starting kolabd:"
 exit    0
 EOF
 
-    # fix bug: "unable to open Berkeley db /etc/sasldb2: No such file or directory"
-    echo password | saslpasswd2 sasldb2 && chown cyrus:saslauth /etc/sasldb2
+        # fix bug: "unable to open Berkeley db /etc/sasldb2: No such file or directory"
+        echo password | saslpasswd2 sasldb2 && chown cyrus:saslauth /etc/sasldb2
+    
+        # SSL by default in apache
+        sed -i -e 's/<Directory \/>/<Directory \/>\n    RedirectMatch \^\/$ \/webmail\//g' /etc/httpd/conf/httpd.conf
 
-    # SSL by default in apache
-    sed -i -e 's/<Directory \/>/<Directory \/>\n    RedirectMatch \^\/$ \/webmail\//g' /etc/httpd/conf/httpd.conf
-
+        echo "info:  finished configuring Kolab"
+    else
+        echo "warn: Kolab already configured, skipping..."
+    fi
 }
 
 configure_nginx()
 {
-    # This section is made using the official kolab wiki-page:
-    # https://docs.kolab.org/howtos/nginx-webserver.html
+    if [[ $(grep -c Kolab /etc/nginx/conf.d/default.conf) == 0 ]] ; then
+        echo "info:  start configuring nginx"
 
-    rm -f /etc/php-fpm.d/www.conf
+        # This section is made using the official kolab wiki-page:
+        # https://docs.kolab.org/howtos/nginx-webserver.html
 
-    cat > /etc/php-fpm.d/kolab_chwala.conf << EOF
+        rm -f /etc/php-fpm.d/www.conf
+
+        cat > /etc/php-fpm.d/kolab_chwala.conf << EOF
 [kolab_chwala]
 user = apache
 group = apache
@@ -390,7 +406,7 @@ chdir = /
 php_value[upload_max_filesize] = 30M
 php_value[post_max_size] = 30M
 EOF
-    cat > /etc/php-fpm.d/kolab_iRony.conf << EOF
+        cat > /etc/php-fpm.d/kolab_iRony.conf << EOF
 [kolab_iRony]
 user = apache
 group = apache
@@ -404,7 +420,7 @@ chdir = /
 php_value[upload_max_filesize] = 30M
 php_value[post_max_size] = 30M
 EOF
-    cat > /etc/php-fpm.d/kolab_kolab-freebusy.conf << EOF
+        cat > /etc/php-fpm.d/kolab_kolab-freebusy.conf << EOF
 [kolab_kolab-freebusy]
 user = apache
 group = apache
@@ -416,7 +432,7 @@ pm.min_spare_servers = 10
 pm.max_spare_servers = 20
 chdir = /
 EOF
-    cat > /etc/php-fpm.d/kolab_kolab-syncroton.conf << EOF
+        cat > /etc/php-fpm.d/kolab_kolab-syncroton.conf << EOF
 [kolab_kolab-syncroton]
 user = apache
 group = apache
@@ -429,7 +445,7 @@ pm.max_spare_servers = 20
 chdir = /
 php_flag[suhosin.session.encrypt] = Off
 EOF
-    cat > /etc/php-fpm.d/kolab_kolab-webadmin.conf << EOF
+        cat > /etc/php-fpm.d/kolab_kolab-webadmin.conf << EOF
 [kolab_kolab-webadmin]
 user = apache
 group = apache
@@ -441,7 +457,7 @@ pm.min_spare_servers = 10
 pm.max_spare_servers = 20
 chdir = /
 EOF
-    cat > /etc/php-fpm.d/kolab_roundcubemail.conf << EOF
+        cat > /etc/php-fpm.d/kolab_roundcubemail.conf << EOF
 [roundcubemail]
 user = apache
 group = apache
@@ -474,7 +490,7 @@ php_value[session.gc_probability] = 1
 php_value[mbstring.func_overload] = 0
 EOF
 
-    cat > /etc/nginx/conf.d/default.conf << EOF
+        cat > /etc/nginx/conf.d/default.conf << EOF
 #
 # Force HTTP Redirect
 #
@@ -628,71 +644,93 @@ server {
 }
 EOF
 
-    sed -i '/^\[kolab_wap\]/,/^\[/ { x; /^$/ !{ x; H }; /^$/ { x; h; }; d; }; x; /^\[kolab_wap\]/ { s/\(\n\+[^\n]*\)$/\napi_url = https:\/\/'$(hostname -f)'\/kolab-webadmin\/api\1/; p; x; p; x; d }; x' /etc/kolab/kolab.conf
+        sed -i '/^\[kolab_wap\]/,/^\[/ { x; /^$/ !{ x; H }; /^$/ { x; h; }; d; }; x; /^\[kolab_wap\]/ { s/\(\n\+[^\n]*\)$/\napi_url = https:\/\/'$(hostname -f)'\/kolab-webadmin\/api\1/; p; x; p; x; d }; x' /etc/kolab/kolab.conf
 
-    sed -i "s/\$config\['assets_path'\] = '.*';/\$config\['assets_path'\] = '\/assets\/';/g" /etc/roundcubemail/config.inc.php
+        sed -i "s/\$config\['assets_path'\] = '.*';/\$config\['assets_path'\] = '\/assets\/';/g" /etc/roundcubemail/config.inc.php
 
-    # Comment apache
-    sed -i '/^[^;]*httpd/s/^/;/' /etc/supervisord.conf
-    # Uncoment nginx and php-fpm
-    sed -i '/^;.*nginx/s/^;//' /etc/supervisord.conf
-    sed -i '/^;.*php-fpm/s/^;//' /etc/supervisord.conf
+        # Comment apache
+        sed -i '/^[^;]*httpd/s/^/;/' /etc/supervisord.conf
+        # Uncoment nginx and php-fpm
+        sed -i '/^;.*nginx/s/^;//' /etc/supervisord.conf
+        sed -i '/^;.*php-fpm/s/^;//' /etc/supervisord.conf
 
+        echo "info:  finished configuring nginx"
+    else
+        echo "warn:  nginx already configured, skipping..."
+    fi
 }
 
 configure_nginx_cache()
 {
-    #Adding open file cache to nginx
-    sed -i '/include \/etc\/nginx\/conf\.d\/\*.conf;/{
-    N
-    a \    open_file_cache max=16384 inactive=5m;
-    a \    open_file_cache_valid 90s; 
-    a \    open_file_cache_min_uses 2;
-    a \    open_file_cache_errors on;
-    }' /etc/nginx/nginx.conf
+    if [[ $(grep -c open_file_cache /etc/nginx/nginx.conf) == 0 ]] ; then
+        echo "info:  start configuring nginx cacheing"
+
+        #Adding open file cache to nginx
+        sed -i '/include \/etc\/nginx\/conf\.d\/\*.conf;/{
+        N
+        a \    open_file_cache max=16384 inactive=5m;
+        a \    open_file_cache_valid 90s; 
+        a \    open_file_cache_min_uses 2;
+        a \    open_file_cache_errors on;
+        }' /etc/nginx/nginx.conf
 
 
-    #Adding fastcgi_cache to nginx
-    mkdir -p /var/lib/nginx/fastcgi/
-    chown -R nginx:nginx /var/lib/nginx/fastcgi/
-    chmod -R 700 /var/lib/nginx/fastcgi/
+        #Adding fastcgi_cache to nginx
+        mkdir -p /var/lib/nginx/fastcgi/
+        chown -R nginx:nginx /var/lib/nginx/fastcgi/
+        chmod -R 700 /var/lib/nginx/fastcgi/
 
-    sed -i '/include \/etc\/nginx\/conf\.d\/\*.conf;/{
-    N
-    a \    fastcgi_cache_key "$scheme$request_method$host$request_uri";
-    a \    fastcgi_cache_use_stale error timeout invalid_header http_500;
-    a \    fastcgi_cache_valid 200 302 304 10m;
-    a \    fastcgi_cache_valid 301 1h; 
-    a \    fastcgi_cache_min_uses 2; 
-    }' /etc/nginx/nginx.conf
+        sed -i '/include \/etc\/nginx\/conf\.d\/\*.conf;/{
+        N
+        a \    fastcgi_cache_key "$scheme$request_method$host$request_uri";
+        a \    fastcgi_cache_use_stale error timeout invalid_header http_500;
+        a \    fastcgi_cache_valid 200 302 304 10m;
+        a \    fastcgi_cache_valid 301 1h; 
+        a \    fastcgi_cache_min_uses 2; 
+        }' /etc/nginx/nginx.conf
 
-    sed -i '1ifastcgi_cache_path /var/lib/nginx/fastcgi/ levels=1:2 keys_zone=key-zone-name:16m max_size=256m inactive=1d;' /etc/nginx/conf.d/default.conf
+        sed -i '1ifastcgi_cache_path /var/lib/nginx/fastcgi/ levels=1:2 keys_zone=key-zone-name:16m max_size=256m inactive=1d;' /etc/nginx/conf.d/default.conf
 
-    sed -i '/ssl_certificate_key/a \    fastcgi_cache key-zone-name;' /etc/nginx/conf.d/default.conf
+        sed -i '/ssl_certificate_key/a \    fastcgi_cache key-zone-name;' /etc/nginx/conf.d/default.conf
+
+        echo "info:  finished configuring nginx caching"
+    else
+        echo "warn:  nginx cacheing already configured, skipping..."
+    fi
 }
 
 configure_amavis()
 {
+    if [[ $(grep -c \$final_spam_destiny.*D_PASS /etc/amavisd/amavisd.conf) == 0 ]] ; then
+        echo "info:  start configuring amavis"
         
-    sed -i '/^[^#]*$sa_spam_subject_tag/s/^/#/' /etc/amavisd/amavisd.conf
-    sed -i '/^# $recipient_delimiter/s/^# //' /etc/amavisd/amavisd.conf
-    sed -i 's/^\($final_spam_destiny.*= \).*/\1D_PASS;/' /etc/amavisd/amavisd.conf
+        sed -i '/^[^#]*$sa_spam_subject_tag/s/^/#/' /etc/amavisd/amavisd.conf
+        sed -i '/^# $recipient_delimiter/s/^# //' /etc/amavisd/amavisd.conf
+        sed -i 's/^\($final_spam_destiny.*= \).*/\1D_PASS;/' /etc/amavisd/amavisd.conf
     
-    # Uncoment set_spam_acl
-    sed -i '/^;.*set_spam_acl/s/^;//' /etc/supervisord.conf
+        # Uncoment set_spam_acl
+        sed -i '/^;.*set_spam_acl/s/^;//' /etc/supervisord.conf
 
+        echo "info:  finished configuring amavis"
+    else
+        echo "warn:  amavis already configured, skipping..."
+    fi
 }
 
 configure_ssl()
 {
-	cat > /tmp/update_ssl_key_message.txt << EOF
+    if [ -f /etc/pki/tls/certs/domain.crt ] ; then
+        echo "warn:  SSL already configured, but that's nothing wrong, run again..."
+    fi
+    echo "info:  start configuring SSL"
+    cat > /tmp/update_ssl_key_message.txt << EOF
 
 
 # Please paste here your SSL ___PRIVATE KEY___. Lines starting
 # with '#' will be ignored, and an empty message aborts
 # updating SSL-certificates procedure.
 EOF
-	cat > /tmp/update_ssl_crt_message.txt << EOF
+    cat > /tmp/update_ssl_crt_message.txt << EOF
 
 
 # Please paste here your SSL ___CERTIFICATE___. Lines starting
@@ -700,7 +738,7 @@ EOF
 # updating SSL-certificates procedure.
 EOF
 
-	cat > /tmp/update_ssl_ca_message.txt << EOF
+    cat > /tmp/update_ssl_ca_message.txt << EOF
 
 
 # Please paste here your SSL ___CA-CERTIFICATE___. Lines starting
@@ -806,45 +844,47 @@ EOF
         echo "error: input of certifacte or private key or ca-sertificate is blank, skipping..."
     fi
 
-rm -rf /tmp/update_ssl*
-
+    rm -rf /tmp/update_ssl*
+    echo "info:  finished configuring SSL"
 }
 
 configure_fail2ban()
 {
+    if [ "$(grep -c "kolab" /etc/fail2ban/jail.conf)" == "0" ] ; then
+        echo "info:  start configuring Fail2ban"
 
-    cat > /etc/fail2ban/filter.d/kolab-cyrus.conf << EOF
+        cat > /etc/fail2ban/filter.d/kolab-cyrus.conf << EOF
 [Definition]
 failregex = (imaps|pop3s)\[[0-9]*\]: badlogin: \[<HOST>\] (plain|PLAIN|login|plaintext) .*
 ignoreregex =
 EOF
-    cat > /etc/fail2ban/filter.d/kolab-postfix.conf << EOF
+        cat > /etc/fail2ban/filter.d/kolab-postfix.conf << EOF
 [Definition]
 failregex = postfix\/submission\/smtpd\[[0-9]*\]: warning: unknown\[<HOST>\]: SASL (PLAIN|LOGIN) authentication failed: authentication failure
 ignoreregex =
 EOF
-    cat > /etc/fail2ban/filter.d/kolab-roundcube.conf << EOF
+        cat > /etc/fail2ban/filter.d/kolab-roundcube.conf << EOF
 [Definition]
 failregex = <.*> Failed login for .* from <HOST> in session .*
 ignoreregex =
 EOF
-    cat > /etc/fail2ban/filter.d/kolab-irony.conf << EOF
+        cat > /etc/fail2ban/filter.d/kolab-irony.conf << EOF
 [Definition]
 failregex = <.*> Failed login for .* from <HOST> in session .*
 ignoreregex =
 EOF
-    cat > /etc/fail2ban/filter.d/kolab-chwala.conf << EOF
+        cat > /etc/fail2ban/filter.d/kolab-chwala.conf << EOF
 [Definition]
 failregex = <.*> Failed login for .* from <HOST> in session .*
 ignoreregex =
 EOF
-    cat > /etc/fail2ban/filter.d/kolab-syncroton.conf << EOF
+        cat > /etc/fail2ban/filter.d/kolab-syncroton.conf << EOF
 [Definition]
 failregex = <.*> Failed login for .* from <HOST> in session .*
 ignoreregex =
 EOF
-    if [ "$(grep -c "kolab" /etc/fail2ban/jail.conf)" == "0" ] ; then
-    cat >> /etc/fail2ban/jail.conf << EOF
+        if [ "$(grep -c "kolab" /etc/fail2ban/jail.conf)" == "0" ] ; then
+            cat >> /etc/fail2ban/jail.conf << EOF
 
 [kolab-cyrus]
 
@@ -895,23 +935,30 @@ logpath = /var/log/kolab-syncroton/userlogins
 maxretry = 5
 EOF
 
+        fi
+
+        # Uncoment fail2ban
+        sed -i '/^;.*fail2ban/s/^;//' /etc/supervisord.conf
+
+        echo "info:  finished configuring Fail2ban"
+    else
+        echo "warn:  Fail2ban already configured, skipping..."
     fi
-
-    # Uncoment fail2ban
-    sed -i '/^;.*fail2ban/s/^;//' /etc/supervisord.conf
-
 }
 
 configure_dkim()
 {
-    opendkim-genkey -D /etc/opendkim/keys/ -d $(hostname -d) -s $(hostname -s)
+    if [ "$(grep -c -ve "^#\|^[[:space:]]*$"  /etc/opendkim/KeyTable )" == "0" ] ; then
+        echo "info:  start configuring OpenDKIM"
+
+        opendkim-genkey -D /etc/opendkim/keys/ -d $(hostname -d) -s $(hostname -s)
+        
+        chgrp opendkim /etc/opendkim/keys/*
+        chmod g+r /etc/opendkim/keys/*
     
-    chgrp opendkim /etc/opendkim/keys/*
-    chmod g+r /etc/opendkim/keys/*
-
-        sed -i "/^127\.0\.0\.1\:[10025|10027].*smtpd/a \    -o receive_override_options=no_milters" /etc/postfix/master.cf
-
-    sed -i 's/^\(^Mode\).*/\1  sv/' /etc/opendkim.conf
+            sed -i "/^127\.0\.0\.1\:[10025|10027].*smtpd/a \    -o receive_override_options=no_milters" /etc/postfix/master.cf
+    
+        sed -i 's/^\(^Mode\).*/\1  sv/' /etc/opendkim.conf
 
         tee -a /etc/opendkim.conf  <<EOF
 KeyTable      /etc/opendkim/KeyTable
@@ -922,27 +969,47 @@ EOF
         echo $(hostname -f | sed s/\\./._domainkey./) $(hostname -d):$(hostname -s):$(ls /etc/opendkim/keys/*.private) | tee -a /etc/opendkim/KeyTable
         echo $(hostname -d) $(echo $(hostname -f) | sed s/\\./._domainkey./) | tee -a /etc/opendkim/SigningTable
 
-    postconf -e milter_default_action=accept
-    postconf -e milter_protocol=2
-    postconf -e smtpd_milters=inet:localhost:8891
-    postconf -e non_smtpd_milters=inet:localhost:8891
+        postconf -e milter_default_action=accept
+        postconf -e milter_protocol=2
+        postconf -e smtpd_milters=inet:localhost:8891
+        postconf -e non_smtpd_milters=inet:localhost:8891
+    
+        # Uncoment opendkim
+        sed -i '/^;.*opendkim/s/^;//' /etc/supervisord.conf
 
-    # Uncoment opendkim
-    sed -i '/^;.*opendkim/s/^;//' /etc/supervisord.conf
-
+        echo "info:  finished configuring OpenDKIM"
+    else
+        echo "warn:  OpenDKIM already configured, skipping..."
+    fi
 }
 
 configure_larry_skin()
 {
-    sed -i "s/\$config\['skin'\] = '.*';/\$config\['skin'\] = 'larry';/g" /etc/roundcubemail/config.inc.php
+    if [ "$(grep -c "larry" /etc/roundcubemail/config.inc.php)" == "0" ] ; then
+        echo "info:  start configuring Larry skin as default"
+
+        sed -i "s/\$config\['skin'\] = '.*';/\$config\['skin'\] = 'larry';/g" /etc/roundcubemail/config.inc.php
+
+        echo "info:  finished configuring Larry skin as default"
+    else
+        echo "warn:  Larry skin already configured as default, skipping..."
+    fi
 }
 
 configure_zipdownload()
 {
-    git clone https://github.com/roundcube/roundcubemail/ --depth 1 /tmp/roundcube
-    mv /tmp/roundcube/plugins/zipdownload/ /usr/share/roundcubemail/plugins/
-    rm -rf /tmp/roundcube/
-    sed -i "/'contextmenu',/a \            'zipdownload'," /etc/roundcubemail/config.inc.php
+    if [ "$(grep -c "zipdownload" /etc/roundcubemail/config.inc.php)" == "0" ] ; then
+        echo "info:  start configuring zipdownload plugin"
+
+        git clone https://github.com/roundcube/roundcubemail/ --depth 1 /tmp/roundcube
+        mv /tmp/roundcube/plugins/zipdownload/ /usr/share/roundcubemail/plugins/
+        rm -rf /tmp/roundcube/
+        sed -i "/'contextmenu',/a \            'zipdownload'," /etc/roundcubemail/config.inc.php
+
+        echo "info:  finished configuring zipdownload plugin"
+    else
+        echo "warn:  zipdownload plugin already configured, skipping..."
+    fi
 }
 
 print_passwords()
@@ -970,122 +1037,52 @@ if [ "$1" = "--help" ] || [ "$1" = "-h" ] || [ "$1" = "help" ] ; then
     usage
 fi
 
-vi /etc/settings.ini
-get_config /etc/settings.ini
 
-echo "info:  start fixing folders and files on attached volumes"
-fix_fdirs
-echo "info:  finished fixing folders and files on attached volumes"
+if [ ! -d /etc/dirsrv/slapd-* ] ; then 
+    echo "info:  First installation detected, run setup wizard..."
 
-if [ "$(grep -c "kolab" /etc/supervisord.conf)" == "0" ] ; then
-    echo "info:  start configuring Supervisor"
+    vi /etc/settings.ini
+    get_config /etc/settings.ini
+    fix_fdirs
     configure_supervisor
-    echo "info:  finished configuring Supervisor"
+    # Main
+    if [ $main_configure_kolab = "true" ] ; then configure_kolab ; fi
+    if [ $main_configure_nginx = "true" ] ; then configure_nginx ; fi
+    if [ $main_configure_nginx_cache = "true" ] ; then configure_nginx_cache ; fi
+    if [ $main_configure_amavis = "true" ] ; then configure_amavis ; fi
+    if [ $main_configure_ssl = "true" ] ; then configure_ssl ; fi
+    if [ $main_configure_fail2ban = "true" ] ; then configure_fail2ban ; fi
+    if [ $main_configure_dkim = "true" ] ; then configure_dkim ; fi
+    # Extras
+    if [ $extras_configure_larry_skin = "true" ] ; then configure_larry_skin ; fi
+    if [ $extras_configure_zipdownload = "true" ] ; then configure_zipdownload ; fi
+    # Print parameters
+    if [ $main_configure_kolab = "true" ] ; then print_passwords ; fi
+    if [ $main_configure_dkim = "true" ] ; then print_dkim_keys ; fi
+
 else
-    echo "warn:  Supervisor already configured, skipping..."
-fi
-
-# Main
-
-if [[ $main_configure_kolab == "true" ]] || [ "$1" = "kolab" ] ; then
-    if [ ! -d /etc/dirsrv/slapd-* ] ; then 
-        echo "info:  start configuring Kolab"
-        configure_kolab
-        echo "info:  finished configuring Kolab"
-    else
-        echo "warn: Kolab already configured, skipping..."
-    fi
-fi
-
-if [[ $main_configure_nginx == "true" ]] || [ "$1" = "nginx" ] ; then
-    if [[ $(grep -c Kolab /etc/nginx/conf.d/default.conf) == 0 ]] ; then
-        echo "info:  start configuring nginx"
-        configure_nginx
-        echo "info:  finished configuring nginx"
-    else
-        echo "warn:  nginx already configured, skipping..."
-    fi
-fi
-
-if [[ $main_configure_nginx_cache == "true" ]] || [ "$1" = "nginx_cache" ] ; then
-    if [[ $(grep -c open_file_cache /etc/nginx/nginx.conf) == 0 ]] ; then
-        echo "info:  start configuring nginx cacheing"
-        configure_nginx_cache
-        echo "info:  finished configuring nginx caching"
-    else
-        echo "warn:  nginx cacheing already configured, skipping..."
-    fi
-fi
-
-if [[ $main_configure_amavis == "true" ]] || [ "$1" = "amavis" ] ; then
-    if [[ $(grep -c \$final_spam_destiny.*D_PASS /etc/amavisd/amavisd.conf) == 0 ]] ; then
-        echo "info:  start configuring amavis"
-        configure_amavis
-        echo "info:  finished configuring amavis"
-    else
-        echo "warn:  amavis already configured, skipping..."
-    fi
+    echo "info:  Kolab already installed, run services..."
+    /usr/bin/supervisord
 fi
 
 
-if [[ $main_configure_ssl == "true" ]] || [ "$1" == "ssl" ] ; then
-    if [ -f /etc/pki/tls/certs/domain.crt ] ; then
-        echo "warn:  SSL already configured, but that's nothing wrong, run again..."
-    fi
-    echo "info:  start configuring SSL"
-    configure_ssl
-    echo "info:  finished configuring SSL"
-fi
+if [ $1 ] ; then
 
-if [[ $main_configure_fail2ban == "true" ]] || [ "$1" = "fail2ban" ] ; then
-    if [ "$(grep -c "kolab" /etc/fail2ban/jail.conf)" == "0" ] ; then
-        echo "info:  start configuring Fail2ban"
-        configure_fail2ban
-        echo "info:  finished configuring Fail2ban"
-    else
-        echo "warn:  Fail2ban already configured, skipping..."
-    fi
-fi
+    vi /etc/settings.ini
+    get_config /etc/settings.ini
+    # Main
+    if [ "$1" == "kolab" ] ; then configure_kolab ; print_passwords ; fi
+    if [ "$1" == "nginx" ] ; then configure_nginx ; fi
+    if [ "$1" == "nginx_cache" ] ; then configure_nginx_cache ; fi
+    if [ "$1" == "amavis" ] ; then configure_amavis ; fi
+    if [ "$1" == "ssl" ] ; then configure_ssl ; fi
+    if [ "$1" == "fail2ban" ] ; then configure_fail2ban ; fi
+    if [ "$1" == "dkim" ] ; then configure_dkim ; print_dkim_keys ; fi
+    # Extras
+    if [ "$1" == "larry" ] ; then configure_larry_skin ; fi
+    if [ "$1" == "zipdownload" ] ; then configure_zipdownload ; fi
+    # Print parameters
+    if [ "$1" = "kolab" ] ; then print_passwords ; fi
+    if [ "$1" = "dkim" ] ; then print_dkim_keys ; fi
 
-if [[ $main_configure_dkim == "true" ]] || [ "$1" == "dkim" ] ; then
-    if [ "$(grep -c -ve "^#\|^[[:space:]]*$"  /etc/opendkim/KeyTable )" == "0" ] ; then
-        echo "info:  start configuring OpenDKIM"
-        configure_dkim
-        echo "info:  finished configuring OpenDKIM"
-    else
-        echo "warn:  OpenDKIM already configured, skipping..."
-    fi
-fi
-
-# Extras
-
-if [[ $extras_configure_larry_skin == "true" ]] || [ "$1" == "larry" ] ; then
-    if [ "$(grep -c "zipdownload" /etc/roundcubemail/config.inc.php)" == "0" ] ; then
-        echo "info:  start configuring Larry skin as default"
-        configure_larry_skin
-        echo "info:  finished configuring Larry skin as default"
-    else
-        echo "warn:  Larry skin already configured as default, skipping..."
-    fi
-fi
-
-
-if [[ $extras_configure_zipdownload == "true" ]] || [ "$1" == "zipdownload" ] ; then
-    if [ "$(grep -c "zipdownload" /etc/roundcubemail/config.inc.php)" == "0" ] ; then
-        echo "info:  start configuring zipdownload plugin"
-        configure_zipdownload
-        echo "info:  finished configuring zipdownload plugin"
-    else
-        echo "warn:  zipdownload plugin already configured, skipping..."
-    fi
-fi
-
-# Print functions
-
-if [[ $main_configure_kolab == "true" ]] || [ "$1" = "kolab" ] ; then
-    print_passwords
-fi
-
-if [[ $main_configure_dkim == "true" ]] || [ "$1" = "dkim" ] ; then
-    print_dkim_keys
 fi
