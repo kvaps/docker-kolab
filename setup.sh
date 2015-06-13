@@ -39,11 +39,10 @@ get_config()
     done < $1
 }
 
-fix_fdirs()
+mount_dirs()
 {
-    echo "info:  start fixing folders and files on attached volumes"
+    echo "info:  start mounting folders to attached volume"
 
-    # bind service folders to /data volume
     mkdir -p /data/mysql
     mkdir -p /data/dirsrv
     mkdir -p /data/imap
@@ -51,7 +50,7 @@ fix_fdirs()
     mkdir -p /data/clamav
     mkdir -p /data/spool
     mkdir -p /data/logs
-    
+
     mount -o bind /data/mysql /var/lib/mysql/
     mount -o bind /data/dirsrv /var/lib/mysql/
     mount -o bind /data/imap /var/lib/imap
@@ -60,6 +59,15 @@ fix_fdirs()
     mount -o bind /data/spool /var/spool
     mount -o bind /data/logs /var/log
 
+    echo "info:  finished mounting folders to attached volume"
+}
+
+fix_fdirs()
+{
+    echo "info:  start fixing folders and files on attached volume"
+
+    mount_dirs
+    
     # create folders on attached volumes
     mkdir -p /var/spool/amavisd
     mkdir -p /var/spool/imap
@@ -119,7 +127,7 @@ fix_fdirs()
     chown apache:root /var/log/php-fpm
     chown root:apache /var/log/roundcubemail
 
-    echo "info:  finished fixing folders and files on attached volumes"
+    echo "info:  finished fixing folders and files on attached volume"
 }
 
 configure_supervisor()
@@ -1037,6 +1045,7 @@ if [ "$1" = "--help" ] || [ "$1" = "-h" ] || [ "$1" = "help" ] ; then
     usage
 fi
 
+mount_dirs
 
 if [ ! -d /etc/dirsrv/slapd-* ] ; then 
     echo "info:  First installation detected, run setup wizard..."
@@ -1066,9 +1075,8 @@ else
 fi
 
 
-if [ $1 ] ; then
+if [ "${#1}" -ge "1" ] ; then
 
-    vi /etc/settings.ini
     get_config /etc/settings.ini
     # Main
     if [ "$1" == "kolab" ] ; then configure_kolab ; print_passwords ; fi
