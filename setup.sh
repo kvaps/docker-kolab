@@ -99,7 +99,6 @@ fix_fdirs()
     chown nginx:nginx /var/log/nginx
     chown apache:root /var/log/php-fpm
     chown root:apache /var/log/roundcubemail
-    chown apache:apache /var/log/syncroton
 }
 
 configure_supervisor()
@@ -669,31 +668,76 @@ configure_amavis()
 
 configure_ssl()
 {
-    mv /root/certs/domain.key /etc/pki/tls/private/domain.key
-    mv /root/certs/domain.crt /etc/pki/tls/certs/domain.crt
-    mv /root/certs/ca.pem /etc/pki/tls/certs/ca.pem
+	cat > /tmp/update_ssl_key_message.txt << EOF
 
-    # Create certificate bundles
-    cat /etc/pki/tls/certs/domain.crt /etc/pki/tls/private/domain.key /etc/pki/tls/certs/ca.pem > /etc/pki/tls/private/domain.bundle.pem
-    cat /etc/pki/tls/certs/domain.crt /etc/pki/tls/certs/ca.pem > /etc/pki/tls/certs/domain.bundle.pem
-    cat /etc/pki/tls/certs/ca.pem > /etc/pki/tls/certs/domain.ca-chain.pem
-    # Set access rights
-    chown -R root:mail /etc/pki/tls/private
-    chmod 600 /etc/pki/tls/private/domain.key
-    chmod 750 /etc/pki/tls/private
-    chmod 640 /etc/pki/tls/private/*
-    # Add CA to system’s CA bundle
-    cat /etc/pki/tls/certs/ca.pem >> /etc/pki/tls/certs/ca-bundle.crt
 
-    # Configure apache for SSL
+# Please paste here your SSL ___PRIVATE KEY___. Lines starting
+# with '#' will be ignored, and an empty message aborts
+# updating SSL-certificates procedure.
+EOF
+	cat > /tmp/update_ssl_crt_message.txt << EOF
 
-    # Set your ssl certificates 
-    sed -i -e '/SSLCertificateFile \/etc\/pki/c\SSLCertificateFile /etc/pki/tls/certs/domain.crt' /etc/httpd/conf.d/ssl.conf
-    sed -i -e '/SSLCertificateKeyFile \/etc\/pki/c\SSLCertificateKeyFile /etc/pki/tls/private/domain.key' /etc/httpd/conf.d/ssl.conf
-    sed -i -e '/SSLCertificateChainFile \/etc\/pki/c\SSLCertificateChainFile /etc/pki/tls/certs/domain.ca-chain.pem' /etc/httpd/conf.d/ssl.conf
-        
-    # Create a vhost for http (:80) to redirect everything to https
-    cat >> /etc/httpd/conf/httpd.conf << EOF
+
+# Please paste here your SSL ___CERTIFICATE___. Lines starting
+# with '#' will be ignored, and an empty message aborts
+# updating SSL-certificates procedure.
+EOF
+
+	cat > /tmp/update_ssl_ca_message.txt << EOF
+
+
+# Please paste here your SSL ___CA-CERTIFICATE___. Lines starting
+# with '#' will be ignored, and an empty message aborts
+# updating SSL-certificates procedure.
+EOF
+
+    if [ -f /etc/pki/tls/private/domain.key ] ; then
+	cat /etc/pki/tls/private/domain.key /tmp/update_ssl_key_message.txt > /tmp/update_ssl_domain.key
+    else
+	cat /tmp/update_ssl_key_message.txt > /tmp/update_ssl_domain.key
+    fi
+
+    if [ -f /etc/pki/tls/certs/domain.crt ] ; then
+	cat /etc/pki/tls/certs/domain.crt /tmp/update_ssl_crt_message.txt > /tmp/update_ssl_domain.crt
+    else
+	cat /tmp/update_ssl_crt_message.txt > /tmp/update_ssl_domain.crt
+    fi
+    if [ -f /etc/pki/tls/certs/ca.pem ] ; then
+	cat /etc/pki/tls/certs/ca.pem /tmp/update_ssl_ca_message.txt > /tmp/update_ssl_ca.pem
+    else
+	cat /tmp/update_ssl_ca_message.txt > /tmp/update_ssl_ca.pem
+    fi
+
+    vi /tmp/update_ssl_domain.key
+    vi /tmp/update_ssl_domain.crt
+    vi /tmp/update_ssl_ca.pem
+
+    if [ "$(grep -c -v -E "^#|^$" /tmp/update_ssl_domain.key)" != "0" ] || [ "$(grep -c -v -E "^#|^$" /tmp/update_ssl_domain.crt)" != "0" ] || [ "$(grep -c -v -E "^#|^$" /tmp/update_ssl_ca.pem)" != "0" ] ; then
+        grep -v -E "^#|^$" /tmp/update_ssl_domain.key > /etc/pki/tls/private/domain.key
+        grep -v -E "^#|^$" /tmp/update_ssl_domain.crt > /etc/pki/tls/certs/domain.crt
+        grep -v -E "^#|^$" /tmp/update_ssl_ca.pem > /etc/pki/tls/certs/ca.pem
+
+        # Create certificate bundles
+        cat /etc/pki/tls/certs/domain.crt /etc/pki/tls/private/domain.key /etc/pki/tls/certs/ca.pem > /etc/pki/tls/private/domain.bundle.pem
+        cat /etc/pki/tls/certs/domain.crt /etc/pki/tls/certs/ca.pem > /etc/pki/tls/certs/domain.bundle.pem
+        cat /etc/pki/tls/certs/ca.pem > /etc/pki/tls/certs/domain.ca-chain.pem
+        # Set access rights
+        chown -R root:mail /etc/pki/tls/private
+        chmod 600 /etc/pki/tls/private/domain.key
+        chmod 750 /etc/pki/tls/private
+        chmod 640 /etc/pki/tls/private/*
+        # Add CA to system’s CA bundle
+        cat /etc/pki/tls/certs/ca.pem >> /etc/pki/tls/certs/ca-bundle.crt
+
+        # Configure apache for SSL
+
+        # Set your ssl certificates 
+        sed -i -e '/SSLCertificateFile \/etc\/pki/c\SSLCertificateFile /etc/pki/tls/certs/domain.crt' /etc/httpd/conf.d/ssl.conf
+        sed -i -e '/SSLCertificateKeyFile \/etc\/pki/c\SSLCertificateKeyFile /etc/pki/tls/private/domain.key' /etc/httpd/conf.d/ssl.conf
+        sed -i -e '/SSLCertificateChainFile \/etc\/pki/c\SSLCertificateChainFile /etc/pki/tls/certs/domain.ca-chain.pem' /etc/httpd/conf.d/ssl.conf
+            
+        # Create a vhost for http (:80) to redirect everything to https
+        cat >> /etc/httpd/conf/httpd.conf << EOF
 
 <VirtualHost _default_:80>
     RewriteEngine On
@@ -741,6 +785,11 @@ EOF
 \$config['force_https'] = true;
 EOF
 
+    else 
+        echo "error: input of certifacte or private key or ca-sertificate is blank, skipping..."
+    fi
+
+rm -rf /tmp/update_ssl*
 
 }
 
@@ -904,6 +953,7 @@ if [ "$1" = "--help" ] || [ "$1" = "-h" ] || [ "$1" = "help" ] ; then
     usage
 fi
 
+vi /etc/settings.ini
 get_config /etc/settings.ini
 
 echo "info:  start fixing folders and files on attached volumes"
