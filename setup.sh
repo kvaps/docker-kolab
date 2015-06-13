@@ -38,16 +38,6 @@ get_config()
             fi
         fi
     done < $1
-
-    new_hostname="$(echo $main_hostname | cut -d. -f1)"
-    new_domain="$(echo $main_hostname | cut -d. -f2-)"
-
-}
-set_hostname()
-{
-    old_hostname="$(cat /etc/hosts | awk 'NR == 1{print $2}')"
-    echo $main_hostname > /etc/hostname
-    sed -e "s/$old_hostname.*$/$main_hostname\ $new_hostname/g" /etc/hosts | tee /etc/hosts
 }
 
 fix_fdirs()
@@ -259,7 +249,7 @@ EOF
 #!/bin/bash
 set_spam_acl ()
 {
-    kolab sam user/%/Spam@$new_domain anyone p
+    kolab sam user/%/Spam@$(hostname -d) anyone p
     sleep 15m 
     set_spam_acl
 }
@@ -310,10 +300,9 @@ EOF
 
 configure_kolab()
 {
-    set_hostname
     adduser dirsrv
     expect <<EOF
-spawn   setup-kolab --fqdn=$main_hostname --timezone=$kolab_Timezone_ID
+spawn   setup-kolab --fqdn=$(hostname -f) --timezone=$kolab_Timezone_ID
 set timeout 300
 expect  "Administrator password *:"
 send    "$kolab_Administrator_password\r"
@@ -486,7 +475,7 @@ server {
 #
 server {
     listen 443 ssl default_server;
-    server_name $main_hostname;
+    server_name $(hostname -f);
     access_log /var/log/nginx/access.log;
     error_log /var/log/nginx/error.log;
 
@@ -624,7 +613,7 @@ server {
 }
 EOF
 
-    sed -i '/^\[kolab_wap\]/,/^\[/ { x; /^$/ !{ x; H }; /^$/ { x; h; }; d; }; x; /^\[kolab_wap\]/ { s/\(\n\+[^\n]*\)$/\napi_url = https:\/\/'$main_hostname'\/kolab-webadmin\/api\1/; p; x; p; x; d }; x' /etc/kolab/kolab.conf
+    sed -i '/^\[kolab_wap\]/,/^\[/ { x; /^$/ !{ x; H }; /^$/ { x; h; }; d; }; x; /^\[kolab_wap\]/ { s/\(\n\+[^\n]*\)$/\napi_url = https:\/\/'$(hostname -f)'\/kolab-webadmin\/api\1/; p; x; p; x; d }; x' /etc/kolab/kolab.conf
 
     sed -i "s/\$config\['assets_path'\] = '.*';/\$config\['assets_path'\] = '\/assets\/';/g" /etc/roundcubemail/config.inc.php
 
@@ -732,7 +721,7 @@ EOF
         #Configure kolab-cli for SSL
         sed -r -i \
               -e '/api_url/d' \
-              -e "s#\[kolab_wap\]#[kolab_wap]\napi_url = https://$main_hostname/kolab-webadmin/api#g" \
+              -e "s#\[kolab_wap\]#[kolab_wap]\napi_url = https://$(hostname -f)/kolab-webadmin/api#g" \
               /etc/kolab/kolab.conf
     
         #Configure Roundcube for SSL
@@ -850,7 +839,7 @@ EOF
 
 configure_dkim()
 {
-    opendkim-genkey -D /etc/opendkim/keys/ -d $new_domain -s $new_hostname
+    opendkim-genkey -D /etc/opendkim/keys/ -d $(hostname -d) -s $(hostname -s)
     
     chgrp opendkim /etc/opendkim/keys/*
     chmod g+r /etc/opendkim/keys/*
@@ -865,8 +854,8 @@ SigningTable  /etc/opendkim/SigningTable
 X-Header yes 
 EOF
 
-        echo $(echo $main_hostname | sed s/\\./._domainkey./) $new_domain:$new_hostname:$(ls /etc/opendkim/keys/*.private) | tee -a /etc/opendkim/KeyTable
-        echo $new_domain $(echo $main_hostname | sed s/\\./._domainkey./) | tee -a /etc/opendkim/SigningTable
+        echo $(hostname -f | sed s/\\./._domainkey./) $(hostname -d):$(hostname -s):$(ls /etc/opendkim/keys/*.private) | tee -a /etc/opendkim/KeyTable
+        echo $(hostname -d) $(echo $(hostname -f) | sed s/\\./._domainkey./) | tee -a /etc/opendkim/SigningTable
 
     postconf -e milter_default_action=accept
     postconf -e milter_protocol=2
@@ -916,7 +905,7 @@ print_dkim_keys()
     echo
     echo "Your DNS-record for your DKIM key:"
     echo
-    cat /etc/opendkim/keys/$new_hostname.txt
+    cat /etc/opendkim/keys/$(hostname -s).txt
     echo "_______________________________________________________"
 }
 
