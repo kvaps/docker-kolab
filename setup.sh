@@ -1032,13 +1032,9 @@ if [[ $main_configure_ssl == "true" ]] || [ "$1" == "ssl" ] ; then
     if [ -f /etc/pki/tls/certs/domain.crt ] ; then
         echo "warn:  SSL already configured, but that's nothing wrong, run again..."
     fi
-    if [[ ( -f /root/certs/domain.crt ) && ( -f /root/certs/domain.key ) && ( -f /root/certs/ca.pem ) ]]; then
-        echo "info:  start configuring SSL"
-        configure_ssl
-        echo "info:  finished configuring SSL"
-    else
-        echo "error: certs/domain.crt or certs/domain.key or certs/ca.pem not found, skipping..."
-    fi
+    echo "info:  start configuring SSL"
+    configure_ssl
+    echo "info:  finished configuring SSL"
 fi
 
 if [[ $main_configure_fail2ban == "true" ]] || [ "$1" = "fail2ban" ] ; then
