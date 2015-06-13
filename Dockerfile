@@ -31,7 +31,7 @@ RUN yum -y install supervisor expect mod_ssl nginx php-fpm opendkim fail2ban git
 RUN pecl install zip
 
 # MySQL LDAP IMAP
-VOLUME ["/var/lib/mysql/", "/var/lib/dirsrv/", "/var/lib/imap", "/var/lib/spamassassin", "/var/lib/clamav/", "/var/spool", "/var/log"]
+VOLUME ["/data"]
 
 WORKDIR /root
 
