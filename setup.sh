@@ -14,7 +14,6 @@ usage ()
      echo "    dkim                  - Configure OpenDKIM"
      echo "    larry	             - Set Larry skin as default"
      echo "    zipdownload           - Configure zipdownload plugin for roundcube"
-     echo "    zlib	             - Update php-zlib"
      echo
      exit
 }
@@ -874,18 +873,10 @@ configure_larry_skin()
 
 configure_zipdownload()
 {
-    yum install -y git 
     git clone https://github.com/roundcube/roundcubemail/ --depth 1 /tmp/roundcube
     mv /tmp/roundcube/plugins/zipdownload/ /usr/share/roundcubemail/plugins/
     rm -rf /tmp/roundcube/
     sed -i "/'contextmenu',/a \            'zipdownload'," /etc/roundcubemail/config.inc.php
-}
-
-configure_zlib()
-{
-    yum -y install php-devel zlib-devel gcc pcre-devel
-    pecl install zip
-    echo extension=zip.so >> /etc/php.ini
 }
 
 print_passwords()
@@ -1023,16 +1014,6 @@ if [[ $extras_configure_zipdownload == "true" ]] || [ "$1" == "zipdownload" ] ; 
         echo "info:  finished configuring zipdownload plugin"
     else
         echo "warn:  zipdownload plugin already configured, skipping..."
-    fi
-fi
-
-if [[ $extras_configure_zlib == "true" ]] || [ "$1" == "zlib" ] ; then
-    if [ "$(grep -c "extension=zip.so" /etc/php.ini)" == "0" ] ; then
-        echo "info:  start configuring php-zlib"
-        configure_zlib
-        echo "info:  finished configuring php-zlib"
-    else
-        echo "warn:  php-zlib already configured, skipping..."
     fi
 fi
 
