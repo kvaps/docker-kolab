@@ -41,35 +41,71 @@ get_config()
 
 mount_dirs()
 {
-    echo "info:  start mounting folders to attached volume"
+    echo "info:  start linking libs and log folders to /data volume"
 
-    mkdir -p /data/mysql
-    mkdir -p /data/dirsrv
-    mkdir -p /data/imap
-    mkdir -p /data/nginx
-    mkdir -p /data/spamassassin
-    mkdir -p /data/clamav
+    mkdir -p /data/lib/mysql
+    mkdir -p /data/lib/dirsrv
+    mkdir -p /data/lib/imap
+    mkdir -p /data/lib/nginx
+    mkdir -p /data/lib/spamassassin
+    mkdir -p /data/lib/clamav
     mkdir -p /data/spool
-    mkdir -p /data/logs
+    mkdir -p /data/log
 
-    mount -o bind /data/mysql /var/lib/mysql
-    mount -o bind /data/dirsrv /var/lib/dirsrv
-    mount -o bind /data/imap /var/lib/imap
-    mount -o bind /data/nginx /var/lib/nginx
-    mount -o bind /data/spamassassin /var/lib/spamassassin
-    mount -o bind /data/clamav /var/lib/clamav
-    mount -o bind /data/spool /var/spool
-    mount -o bind /data/logs /var/log
+    rm -rf /var/lib/mysql
+    rm -rf /var/lib/dirsrv
+    rm -rf /var/lib/imap
+    rm -rf /var/lib/nginx
+    rm -rf /var/lib/spamassassin
+    rm -rf /var/lib/clamav
+    rm -rf /var/spool
+    rm -rf /var/log
 
-    echo "info:  finished mounting folders to attached volume"
+    ln -s /data/lib/mysql /var/lib/mysql
+    ln -s /data/lib/dirsrv /var/lib/dirsrv
+    ln -s /data/lib/imap /var/lib/imap
+    ln -s /data/lib/nginx /var/lib/nginx
+    ln -s /data/lib/spamassassin /var/lib/spamassassin
+    ln -s /data/lib/clamav /var/lib/clamav
+    ln -s /data/spool /var/spool
+    ln -s /data/log /var/log
+
+    echo "info:  fnished linking libs and log folders to /data volume"
 }
 
-fix_fdirs()
+fix_dirs()
 {
-    echo "info:  start fixing folders and files on attached volume"
+    echo "info:  start fixing folders and log files on /data volume"
 
     mount_dirs
-    
+    mkdir -p /data/lib/mysql
+    mkdir -p /data/lib/dirsrv
+    mkdir -p /data/lib/imap
+    mkdir -p /data/lib/nginx
+    mkdir -p /data/lib/spamassassin
+    mkdir -p /data/lib/clamav
+    mkdir -p /data/spool
+    mkdir -p /data/log
+
+    rm -rf /var/lib/mysql
+    rm -rf /var/lib/dirsrv
+    rm -rf /var/lib/imap
+    rm -rf /var/lib/nginx
+    rm -rf /var/lib/spamassassin
+    rm -rf /var/lib/clamav
+    rm -rf /var/spool
+    rm -rf /var/log
+
+    ln -s /data/lib/mysql /var/lib/mysql
+    ln -s /data/lib/dirsrv /var/lib/dirsrv
+    ln -s /data/lib/imap /var/lib/imap
+    ln -s /data/lib/nginx /var/lib/nginx
+    ln -s /data/lib/spamassassin /var/lib/spamassassin
+    ln -s /data/lib/clamav /var/lib/clamav
+    ln -s /data/spool /var/spool
+    ln -s /data/log /var/log
+
+   
     # create folders on attached volumes
     mkdir -p /var/lib/nginx/fastcgi/
     mkdir -p /var/lib/nginx/tmp/
@@ -133,7 +169,7 @@ fix_fdirs()
     chown apache:root /var/log/php-fpm
     chown root:apache /var/log/roundcubemail
 
-    echo "info:  finished fixing folders and files on attached volume"
+    echo "info:  finished fixing folders and log files on /data volume"
 }
 
 configure_supervisor()
@@ -1045,14 +1081,13 @@ if [ "$1" = "--help" ] || [ "$1" = "-h" ] || [ "$1" = "help" ] ; then
     usage
 fi
 
-mount_dirs
-
 if [ ! -d /etc/dirsrv/slapd-* ] ; then 
     echo "info:  First installation detected, run setup wizard..."
 
+    mount_dirs
+    fix_dirs
     vi /etc/settings.ini
     get_config /etc/settings.ini
-    fix_fdirs
     configure_supervisor
     # Main
     if [ $main_configure_kolab = "true" ] ; then configure_kolab ; fi
