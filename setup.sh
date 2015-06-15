@@ -71,13 +71,15 @@ fix_fdirs()
     mount_dirs
     
     # create folders on attached volumes
+    mkdir -p /var/lib/nginx/fastcgi/
+    mkdir -p /var/lib/nginx/tmp/
     mkdir -p /var/spool/amavisd
     mkdir -p /var/spool/imap
     mkdir -p /var/spool/mail
     mkdir -p /var/spool/opendkim
     mkdir -p /var/spool/postfix
     mkdir -p /var/spool/pykolab
-    
+
     mkdir -p /var/log/chwala
     mkdir -p /var/log/clamav
     mkdir -p /var/log/dirsrv
@@ -110,6 +112,8 @@ fix_fdirs()
     # fix permissons
     chown cyrus:mail /var/lib/imap
     chown mysql:mysql /var/lib/mysql
+    chown -R nginx:nginx /var/lib/nginx
+    chmod -R 700 /var/lib/nginx/fastcgi/
     
     chown amavis:amavis /var/spool/amavisd
     chown cyrus:mail /var/spool/imap
@@ -683,12 +687,6 @@ configure_nginx_cache()
         a \    open_file_cache_min_uses 2;
         a \    open_file_cache_errors on;
         }' /etc/nginx/nginx.conf
-
-
-        #Adding fastcgi_cache to nginx
-        mkdir -p /var/lib/nginx/fastcgi/
-        chown -R nginx:nginx /var/lib/nginx/fastcgi/
-        chmod -R 700 /var/lib/nginx/fastcgi/
 
         sed -i '/include \/etc\/nginx\/conf\.d\/\*.conf;/{
         N
