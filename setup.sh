@@ -46,6 +46,7 @@ mount_dirs()
     mkdir -p /data/mysql
     mkdir -p /data/dirsrv
     mkdir -p /data/imap
+    mkdir -p /data/nginx
     mkdir -p /data/spamassassin
     mkdir -p /data/clamav
     mkdir -p /data/spool
@@ -54,6 +55,7 @@ mount_dirs()
     mount -o bind /data/mysql /var/lib/mysql/
     mount -o bind /data/dirsrv /var/lib/mysql/
     mount -o bind /data/imap /var/lib/imap
+    mount -o bind /data/nginx /var/lib/nginx
     mount -o bind /data/spamassassin /var/lib/spamassassin
     mount -o bind /data/clamav /var/lib/clamav/
     mount -o bind /data/spool /var/spool
