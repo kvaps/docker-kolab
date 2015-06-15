@@ -41,25 +41,18 @@ get_config()
 
 mount_dirs()
 {
-    echo "info:  start linking libs and log folders to /data volume"
+    echo "info:  start moving lib and log folders to /data volume"
 
-    mkdir -p /data/lib/mysql
-    mkdir -p /data/lib/dirsrv
-    mkdir -p /data/lib/imap
-    mkdir -p /data/lib/nginx
-    mkdir -p /data/lib/spamassassin
-    mkdir -p /data/lib/clamav
-    mkdir -p /data/spool
-    mkdir -p /data/log
+    mkdir -p /data/lib
 
-    rm -rf /var/lib/mysql
-    rm -rf /var/lib/dirsrv
-    rm -rf /var/lib/imap
-    rm -rf /var/lib/nginx
-    rm -rf /var/lib/spamassassin
-    rm -rf /var/lib/clamav
-    rm -rf /var/spool
-    rm -rf /var/log
+    mv /var/lib/mysql /data/lib/mysql
+    mv /var/lib/dirsrv /data/lib/dirsrv
+    mv /var/lib/imap /data/lib/imap
+    mv /var/lib/nginx /data/lib/nginx
+    mv /var/lib/spamassassin /data/lib/spamassassin
+    mv /var/lib/clamav /data/lib/clamav
+    mv /var/spool /data/spool
+    mv /var/log /data/log
 
     ln -s /data/lib/mysql /var/lib/mysql
     ln -s /data/lib/dirsrv /var/lib/dirsrv
@@ -70,106 +63,7 @@ mount_dirs()
     ln -s /data/spool /var/spool
     ln -s /data/log /var/log
 
-    echo "info:  fnished linking libs and log folders to /data volume"
-}
-
-fix_dirs()
-{
-    echo "info:  start fixing folders and log files on /data volume"
-
-    mount_dirs
-    mkdir -p /data/lib/mysql
-    mkdir -p /data/lib/dirsrv
-    mkdir -p /data/lib/imap
-    mkdir -p /data/lib/nginx
-    mkdir -p /data/lib/spamassassin
-    mkdir -p /data/lib/clamav
-    mkdir -p /data/spool
-    mkdir -p /data/log
-
-    rm -rf /var/lib/mysql
-    rm -rf /var/lib/dirsrv
-    rm -rf /var/lib/imap
-    rm -rf /var/lib/nginx
-    rm -rf /var/lib/spamassassin
-    rm -rf /var/lib/clamav
-    rm -rf /var/spool
-    rm -rf /var/log
-
-    ln -s /data/lib/mysql /var/lib/mysql
-    ln -s /data/lib/dirsrv /var/lib/dirsrv
-    ln -s /data/lib/imap /var/lib/imap
-    ln -s /data/lib/nginx /var/lib/nginx
-    ln -s /data/lib/spamassassin /var/lib/spamassassin
-    ln -s /data/lib/clamav /var/lib/clamav
-    ln -s /data/spool /var/spool
-    ln -s /data/log /var/log
-
-   
-    # create folders on attached volumes
-    mkdir -p /var/lib/nginx/fastcgi/
-    mkdir -p /var/lib/nginx/tmp/
-    mkdir -p /var/spool/amavisd
-    mkdir -p /var/spool/imap
-    mkdir -p /var/spool/mail
-    mkdir -p /var/spool/opendkim
-    mkdir -p /var/spool/postfix
-    mkdir -p /var/spool/pykolab
-
-    mkdir -p /var/log/chwala
-    mkdir -p /var/log/clamav
-    mkdir -p /var/log/dirsrv
-    mkdir -p /var/log/httpd
-    mkdir -p /var/log/iRony
-    mkdir -p /var/log/kolab
-    mkdir -p /var/log/kolab-freebusy
-    mkdir -p /var/log/kolab-syncroton
-    mkdir -p /var/log/kolab-webadmin
-    mkdir -p /var/log/nginx
-    mkdir -p /var/log/php-fpm
-    mkdir -p /var/log/roundcubemail
-    mkdir -p /var/log/supervisor
-    
-    
-    # create new log files
-    touch /var/log/maillog
-    touch /var/log/messages
-    touch /var/log/mysqld.log
-    touch /var/log/php-fpm/error.log
-    touch /var/log/httpd/error_log
-    touch /var/log/nginx/error.log
-    touch /var/log/kolab/pykolab.log
-    touch /var/log/clamav/clamd.log
-    touch /var/log/roundcubemail/userlogins
-    touch /var/log/iRony/userlogins
-    touch /var/log/chwala/userlogins
-    touch /var/log/kolab-syncroton/userlogins
-
-    # fix permissons
-    chown cyrus:mail /var/lib/imap
-    chown mysql:mysql /var/lib/mysql
-    chown -R nginx:nginx /var/lib/nginx
-    chmod -R 700 /var/lib/nginx/fastcgi/
-    
-    chown amavis:amavis /var/spool/amavisd
-    chown cyrus:mail /var/spool/imap
-    chown root:mail /var/spool/mail
-    chown opendkim:opendkim /var/spool/opendkim
-    chown kolab:kolab /var/spool/pykolab
-    
-    chown mysql:mysql /var/log/mysqld.log
-    chown apache:apache /var/log/chwala
-    chown clam:clam /var/log/clamav
-    chown apache:apache /var/log/iRony
-    chown kolab:kolab-n /var/log/kolab
-    chown root:apache /var/log/kolab-freebusy
-    chown apache:apache /var/log/kolab-syncroton
-    chown apache:apache /var/log/kolab-webadmin
-    chown nginx:nginx /var/log/nginx
-    chown apache:root /var/log/php-fpm
-    chown root:apache /var/log/roundcubemail
-
-    echo "info:  finished fixing folders and log files on /data volume"
+    echo "info:  finished moving lib and log folders to /data volume"
 }
 
 configure_supervisor()
@@ -1085,7 +979,6 @@ if [ ! -d /etc/dirsrv/slapd-* ] ; then
     echo "info:  First installation detected, run setup wizard..."
 
     mount_dirs
-    fix_dirs
     vi /etc/settings.ini
     get_config /etc/settings.ini
     configure_supervisor
