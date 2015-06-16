@@ -33,6 +33,9 @@ RUN pecl install zip
 #User for 389-ds
 RUN adduser dirsrv
 
+# fix bug: "unable to open Berkeley db /etc/sasldb2: No such file or directory"
+RUN echo password | saslpasswd2 sasldb2 && chown cyrus:saslauth /etc/sasldb2
+
 # fix: http://trac.roundcube.net/ticket/1490424
 RUN sed -i "840s/\$this/\$me/g"  /usr/share/roundcubemail/program/lib/Roundcube/rcube_ldap.php 
 

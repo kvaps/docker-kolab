@@ -48,6 +48,7 @@ dir=(
     /etc/my.cnf
     /etc/cyrus.conf
     /etc/imapd.conf
+    /etc/imapd.annotations.conf
     /etc/kolab
     /etc/kolab-freebusy
     /etc/nginx
@@ -227,11 +228,12 @@ expect  "Starting kolabd:"
 exit    0
 EOF
 
-        # fix bug: "unable to open Berkeley db /etc/sasldb2: No such file or directory"
-        echo password | saslpasswd2 sasldb2 && chown cyrus:saslauth /etc/sasldb2
-    
         # SSL by default in apache
         sed -i -e 's/<Directory \/>/<Directory \/>\n    RedirectMatch \^\/$ \/webmail\//g' /etc/httpd/conf/httpd.conf
+
+        #fix: Certificates changed by default from localhost.pem to key and crt
+        postconf -e smtpd_tls_key_file=/etc/pki/tls/private/localhost.key
+        postconf -e smtpd_tls_cert_file=/etc/pki/tls/certs/localhost.crt
 
         echo "info:  finished configuring Kolab"
     else
