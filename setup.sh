@@ -39,7 +39,7 @@ get_config()
     done < $1
 }
 
-mount_dirs()
+move_dirs()
 {
     echo "info:  start moving lib and log folders to /data volume"
 
@@ -54,6 +54,29 @@ mount_dirs()
     mv /var/spool /data/spool
     mv /var/log /data/log
 
+    echo "info:  finished moving lib and log folders to /data volume"
+}
+
+rm_dirs()
+{
+    echo "info:  start removing default lib and log folders"
+
+    rm -rf /var/lib/mysql 
+    rm -rf /var/lib/dirsrv 
+    rm -rf /var/lib/imap 
+    rm -rf /var/lib/nginx 
+    rm -rf /var/lib/spamassassin 
+    rm -rf /var/lib/clamav 
+    rm -rf /var/spool 
+    rm -rf /var/log 
+
+    echo "info:  finished removing default lib and log folders"
+}
+
+link_dirs()
+{
+    echo "info:  start linking lib and log folders to /data volume"
+
     ln -s /data/lib/mysql /var/lib/mysql
     ln -s /data/lib/dirsrv /var/lib/dirsrv
     ln -s /data/lib/imap /var/lib/imap
@@ -63,7 +86,7 @@ mount_dirs()
     ln -s /data/spool /var/spool
     ln -s /data/log /var/log
 
-    echo "info:  finished moving lib and log folders to /data volume"
+    echo "info:  finished linking lib and log folders to /data volume"
 }
 
 configure_supervisor()
@@ -971,14 +994,8 @@ print_dkim_keys()
     echo "_______________________________________________________"
 }
 
-if [ "$1" = "--help" ] || [ "$1" = "-h" ] || [ "$1" = "help" ] ; then 
-    usage
-fi
-
-if [ ! -d /etc/dirsrv/slapd-* ] ; then 
-    echo "info:  First installation detected, run setup wizard..."
-
-    mount_dirs
+setup_wizard ()
+{
     vi /etc/settings.ini
     get_config /etc/settings.ini
     configure_supervisor
@@ -996,7 +1013,31 @@ if [ ! -d /etc/dirsrv/slapd-* ] ; then
     # Print parameters
     if [ $main_configure_kolab = "true" ] ; then print_passwords ; fi
     if [ $main_configure_dkim = "true" ] ; then print_dkim_keys ; fi
+}
 
+if [ "$1" = "--help" ] || [ "$1" = "-h" ] || [ "$1" = "help" ] ; then 
+    usage
+fi
+
+if [ -d /data/lib/dirsrv/slapd-* ] && [ ! -d /etc/dirsrv/slapd-* ] ; then
+
+    echo "info:  Kolab installation detected on /data volume, run setup wizard..."
+
+    while true; do
+        read -p "Do you wish to install kolab, then remove default data and relink it to /data volume?" yn
+        case $yn in
+            [Yy]* ) setup_wizard; rm_dirs; link_dirs; break;;
+            [Nn]* ) exit;;
+            * ) echo "Please answer yes or no.";;
+        esac
+    done
+
+
+elif [ ! -d /etc/dirsrv/slapd-* ] ; then 
+    echo "info:  First installation detected, run setup wizard..."
+    move_dirs
+    link_dirs
+    setup_wizard
 else
     echo "info:  Kolab already installed, run services..."
     /usr/bin/supervisord
