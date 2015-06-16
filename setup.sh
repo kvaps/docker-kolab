@@ -5,6 +5,7 @@ usage ()
      echo "Usage:    ./setup.sh [ARGUMENT]"
      echo
      echo "Arguments:"
+     echo "    link                  - Create symlinks default folders to /data"
      echo "    kolab                 - Configure Kolab"
      echo "    amavis                - Configure amavis"
      echo "    nginx                 - Configure nginx"
@@ -31,7 +32,7 @@ get_config()
             then
 		random_pwd="$(cat /dev/urandom | env LC_CTYPE=C tr -dc a-zA-Z0-9 | head -c 16; echo)"	# gen pass
                 eval $section"_"$var=$random_pwd
-		sed -i "/\(^"$var"=\).*/ s//\1"$random_pwd"/ " $1	#save generated pass to settings.ini
+		sed -i --follow-symlinks "/\(^"$var"=\).*/ s//\1"$random_pwd"/ " $1	#save generated pass to settings.ini
             else
                 eval $section"_"$var="$val"
             fi
@@ -39,212 +40,74 @@ get_config()
     done < $1
 }
 
+dir=(
+    /etc/settings.ini
+    /etc/dirsrv
+    /etc/fail2ban
+    /etc/httpd
+    /etc/my.cnf
+    /etc/cyrus.conf
+    /etc/imapd.conf
+    /etc/kolab
+    /etc/kolab-freebusy
+    /etc/nginx
+    /etc/opendkim
+    /etc/opendkim.conf
+    /etc/php-fpm.d
+    /etc/php-fpm.conf
+    /etc/php.d
+    /etc/php.ini
+    /etc/postfix
+    /etc/roundcubemail
+    /etc/sasldb2
+    /etc/supervisord.conf
+    /etc/clamd.conf
+    /etc/clamd.d
+    /etc/freshclam.conf
+    /etc/iRony
+    /etc/ssl
+    /etc/mailname
+    /etc/mail
+    /var/lib/mysql 
+    /var/lib/dirsrv 
+    /var/lib/imap 
+    /var/lib/nginx 
+    /var/lib/spamassassin 
+    /var/lib/clamav 
+    /var/spool 
+    /var/log 
+)
+
+
 move_dirs()
 {
     echo "info:  start moving lib and log folders to /data volume"
 
-    mkdir -p /data/lib
+    mkdir -p /data/etc
+    mkdir -p /data/var/lib
 
-    mv /var/lib/mysql /data/lib/mysql
-    mv /var/lib/dirsrv /data/lib/dirsrv
-    mv /var/lib/imap /data/lib/imap
-    mv /var/lib/nginx /data/lib/nginx
-    mv /var/lib/spamassassin /data/lib/spamassassin
-    mv /var/lib/clamav /data/lib/clamav
-    mv /var/spool /data/spool
-    mv /var/log /data/log
+    for i in "${dir[@]}"; do mv $i /data$i; done
 
     echo "info:  finished moving lib and log folders to /data volume"
 }
 
-rm_dirs()
+link_dirs()
 {
     echo "info:  start removing default lib and log folders"
 
-    rm -rf /var/lib/mysql 
-    rm -rf /var/lib/dirsrv 
-    rm -rf /var/lib/imap 
-    rm -rf /var/lib/nginx 
-    rm -rf /var/lib/spamassassin 
-    rm -rf /var/lib/clamav 
-    rm -rf /var/spool 
-    rm -rf /var/log 
+    for i in "${dir[@]}"; do rm -rf $i && ln -s /data$i $i ; done
+ 
+    #Need for dirsrv
+    mkdir /var/lock/dirsrv/slapd-$(hostname -s)/
+    chown dirsrv:dirsrv /var/lock/dirsrv/slapd-$(hostname -s)/
+    chown dirsrv:dirsrv /var/run/dirsrv
 
     echo "info:  finished removing default lib and log folders"
-}
-
-link_dirs()
-{
-    echo "info:  start linking lib and log folders to /data volume"
-
-    ln -s /data/lib/mysql /var/lib/mysql
-    ln -s /data/lib/dirsrv /var/lib/dirsrv
-    ln -s /data/lib/imap /var/lib/imap
-    ln -s /data/lib/nginx /var/lib/nginx
-    ln -s /data/lib/spamassassin /var/lib/spamassassin
-    ln -s /data/lib/clamav /var/lib/clamav
-    ln -s /data/spool /var/spool
-    ln -s /data/log /var/log
-
-    echo "info:  finished linking lib and log folders to /data volume"
 }
 
 configure_supervisor()
 {
     echo "info:  start configuring Supervisor"
-
-    cat > /bin/rsyslog-wrapper.sh << EOF
-#!/bin/bash
-d=rsyslog
-l=/var/log/messages
-g=rsyslogd:
-trap '{ service \$d stop; exit 0; }' EXIT 
-service \$d start 
-tail -f -n 1 \$l | grep \$g
-EOF
-
-    cat > /bin/nginx-wrapper.sh << EOF
-#!/bin/bash
-d=nginx
-l=/var/log/nginx/error.log
-trap '{ service \$d stop; exit 0; }' EXIT 
-service \$d start 
-tail -f -n1 \$l
-EOF
-
-    cat > /bin/httpd-wrapper.sh << EOF
-#!/bin/bash
-d=httpd
-l=/var/log/httpd/error_log
-trap '{ service \$d stop; exit 0; }' EXIT
-service \$d start ; tail -f -n1 \$l
-EOF
-
-    cat > /bin/php-fpm-wrapper.sh << EOF
-#!/bin/bash
-d=php-fpm
-l=/var/log/php-fpm/error.log
-trap '{ service \$d stop; exit 0; }' EXIT
-service \$d start
-tail -f -n1 \$l
-EOF
-
-    cat > /bin/mysqld-wrapper.sh << EOF
-#!/bin/bash
-d=mysqld
-l=/var/log/mysqld.log
-trap '{ service \$d stop; exit 0; }' EXIT
-service \$d start
-tail -f -n1 \$l
-EOF
-
-    cat > /bin/dirsrv-wrapper.sh << EOF
-#!/bin/bash
-d=dirsrv
-l=/var/log/dirsrv/slapd-*/errors
-trap '{ service \$d stop; exit 0; }' EXIT
-service \$d start
-tail -f -n1 \$l
-EOF
-
-    cat > /bin/postfix-wrapper.sh << EOF
-#!/bin/bash
-d=postfix
-l=/var/log/maillog
-g='postfix.*\[.*\]:'
-trap '{ service \$d stop; exit 0; }' EXIT
-service \$d start
-tail -f -n1 \$l | grep \$g
-EOF
-
-    cat > /bin/cyrus-imapd-wrapper.sh << EOF
-#!/bin/bash
-d=cyrus-imapd
-l=/var/log/maillog
-g='[master\|pop3\|imap].*\[.*\]:'
-trap '{ service \$d stop; exit 0; }' EXIT 
-service \$d start
-tail -f -n1 \$l
-EOF
-
-    cat > /bin/amavisd-wrapper.sh << EOF
-#!/bin/bash
-d=amavisd
-l=/var/log/maillog
-g='amavis.*\[.*\]:'
-trap '{ service \$d stop; exit 0; }' EXIT
-service \$d start
-tail -f -n1 \$l | grep \$g
-EOF
-
-    cat > /bin/clamd-wrapper.sh << EOF
-#!/bin/bash
-d=clamd
-l=/var/log/clamav/clamd.log
-trap '{ service \$d stop; exit 0; }' EXIT
-service \$d start 
-tail -f -n1 \$l
-EOF
-
-    cat > /bin/wallace-wrapper.sh << EOF
-#!/bin/bash
-d=wallace
-trap '{ service \$d stop; exit 0; }' EXIT
-service \$d start
-sleep infinity
-EOF
-
-    cat > /bin/kolabd-wrapper.sh << EOF
-#!/bin/bash
-d=kolabd
-l=/var/log/kolab/pykolab.log
-trap '{ service \$d stop; exit 0; }' EXIT 
-sleep 10
-service \$d start 
-tail -f -n1 \$l
-EOF
-
-    cat > /bin/kolab-saslauthd-wrapper.sh << EOF
-#!/bin/bash
-d=kolab-saslauthd
-trap '{ sleep 2; service \$d stop; exit 0; }' EXIT
-service \$d start
-sleep infinity
-EOF
-
-    cat > /bin/opendkim-wrapper.sh << EOF
-#!/bin/bash
-d=opendkim
-l=/var/log/maillog
-g='opendkim.*\[.*\]:'
-trap '{ service \$d stop; exit 0; }' EXIT
-service \$d start
-tail -f -n1 \$l | grep \$g
-EOF
-
-    cat > /bin/fail2ban-wrapper.sh << EOF
-#!/bin/bash
-d=fail2ban
-l=/var/log/messages
-g='fail2ban.*\[.*\]:'
-trap '{ service \$d stop; exit 0; }' EXIT
-service \$d start
-tail -f -n1 \$l | grep \$g
-EOF
-
-    cat > /bin/set_spam_acl.sh << EOF 
-#!/bin/bash
-set_spam_acl ()
-{
-    kolab sam user/%/Spam@$(hostname -d) anyone p
-    sleep 15m 
-    set_spam_acl
-}
-set_spam_acl
-EOF
-
-    chmod +x /bin/*-wrapper.sh
-    chmod +x /bin/set_spam_acl.sh
 
     cat > /etc/supervisord.conf << EOF
 [supervisord]
@@ -291,7 +154,12 @@ configure_kolab()
 {
     if [ ! -d /etc/dirsrv/slapd-* ] ; then 
         echo "info:  start configuring Kolab"
-        adduser dirsrv
+
+        #Fix apache symlinks
+        rm -f /etc/httpd/modules && ln -s /usr/lib64/httpd/modules /etc/httpd/modules
+        rm -f /etc/httpd/logs && ln -s /var/log/httpd /etc/httpd/logs
+        rm -f /etc/httpd/run && ln -s /var/run /etc/httpd/run
+
         expect <<EOF
 spawn   setup-kolab --fqdn=$(hostname -f) --timezone=$kolab_Timezone_ID
 set timeout 300
@@ -347,6 +215,7 @@ EOF
     else
         echo "warn: Kolab already configured, skipping..."
     fi
+
 }
 
 configure_nginx()
@@ -480,8 +349,8 @@ server {
     # enable ssl
 
     ssl on;
-    ssl_certificate /etc/pki/tls/private/localhost.pem;
-    ssl_certificate_key /etc/pki/tls/private/localhost.pem;
+    ssl_certificate /etc/pki/tls/certs/localhost.crt;
+    ssl_certificate_key /etc/pki/tls/private/localhost.key;
 
     # Start common Kolab config
 
@@ -616,10 +485,10 @@ EOF
         sed -i "s/\$config\['assets_path'\] = '.*';/\$config\['assets_path'\] = '\/assets\/';/g" /etc/roundcubemail/config.inc.php
 
         # Comment apache
-        sed -i '/^[^;]*httpd/s/^/;/' /etc/supervisord.conf
+        sed -i --follow-symlinks '/^[^;]*httpd/s/^/;/' /etc/supervisord.conf
         # Uncoment nginx and php-fpm
-        sed -i '/^;.*nginx/s/^;//' /etc/supervisord.conf
-        sed -i '/^;.*php-fpm/s/^;//' /etc/supervisord.conf
+        sed -i --follow-symlinks '/^;.*nginx/s/^;//' /etc/supervisord.conf
+        sed -i --follow-symlinks '/^;.*php-fpm/s/^;//' /etc/supervisord.conf
 
         echo "info:  finished configuring nginx"
     else
@@ -670,7 +539,7 @@ configure_amavis()
         sed -i 's/^\($final_spam_destiny.*= \).*/\1D_PASS;/' /etc/amavisd/amavisd.conf
     
         # Uncoment set_spam_acl
-        sed -i '/^;.*set_spam_acl/s/^;//' /etc/supervisord.conf
+        sed -i --follow-symlinks '/^;.*set_spam_acl/s/^;//' /etc/supervisord.conf
 
         echo "info:  finished configuring amavis"
     else
@@ -899,7 +768,7 @@ EOF
         fi
 
         # Uncoment fail2ban
-        sed -i '/^;.*fail2ban/s/^;//' /etc/supervisord.conf
+        sed -i --follow-symlinks '/^;.*fail2ban/s/^;//' /etc/supervisord.conf
 
         echo "info:  finished configuring Fail2ban"
     else
@@ -919,7 +788,7 @@ configure_dkim()
     
             sed -i "/^127\.0\.0\.1\:[10025|10027].*smtpd/a \    -o receive_override_options=no_milters" /etc/postfix/master.cf
     
-        sed -i 's/^\(^Mode\).*/\1  sv/' /etc/opendkim.conf
+        sed -i --follow-symlinks 's/^\(^Mode\).*/\1  sv/' /etc/opendkim.conf
 
         tee -a /etc/opendkim.conf  <<EOF
 KeyTable      /etc/opendkim/KeyTable
@@ -936,7 +805,7 @@ EOF
         postconf -e non_smtpd_milters=inet:localhost:8891
     
         # Uncoment opendkim
-        sed -i '/^;.*opendkim/s/^;//' /etc/supervisord.conf
+        sed -i --follow-symlinks '/^;.*opendkim/s/^;//' /etc/supervisord.conf
 
         echo "info:  finished configuring OpenDKIM"
     else
@@ -1019,34 +888,9 @@ if [ "$1" = "--help" ] || [ "$1" = "-h" ] || [ "$1" = "help" ] ; then
     usage
 fi
 
-if [ -d /data/lib/dirsrv/slapd-* ] && [ ! -d /etc/dirsrv/slapd-* ] ; then
-
-    echo "info:  Kolab installation detected on /data volume, run setup wizard..."
-
-    while true; do
-        read -p "Do you wish to install kolab, then remove default data and relink it to /data volume?" yn
-        case $yn in
-            [Yy]* ) setup_wizard; rm_dirs; link_dirs; break;;
-            [Nn]* ) exit;;
-            * ) echo "Please answer yes or no.";;
-        esac
-    done
-
-
-elif [ ! -d /etc/dirsrv/slapd-* ] ; then 
-    echo "info:  First installation detected, run setup wizard..."
-    move_dirs
-    link_dirs
-    setup_wizard
-else
-    echo "info:  Kolab already installed, run services..."
-    /usr/bin/supervisord
-fi
-
-
 if [ "${#1}" -ge "1" ] ; then
 
-    get_config /etc/settings.ini
+    get_config /data/etc/settings.ini
     # Main
     if [ "$1" == "kolab" ] ; then configure_kolab ; print_passwords ; fi
     if [ "$1" == "nginx" ] ; then configure_nginx ; fi
@@ -1061,5 +905,28 @@ if [ "${#1}" -ge "1" ] ; then
     # Print parameters
     if [ "$1" = "kolab" ] ; then print_passwords ; fi
     if [ "$1" = "dkim" ] ; then print_dkim_keys ; fi
+    if [ "$1" = "link" ] ; then link_dirs ; fi
+
+elif [ -d /data/etc/dirsrv/slapd-* ] ; then
+
+    echo "info:  Kolab installation detected on /data volume, run relinkink..."
+    link_dirs
+    
+    echo "info:  Starting services"
+    /usr/bin/supervisord
+
+else
+
+     while true; do
+        read -p "warn:  Kolab data not detected on /data volume, this is first installation? " yn
+        case $yn in
+            [Yy]* ) move_dirs; link_dirs; setup_wizard; break;;
+            [Nn]* ) echo "info:  Installation canceled"; exit;;
+            * ) echo "Please answer yes or no.";;
+        esac
+    done
 
 fi
+
+
+

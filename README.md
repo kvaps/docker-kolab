@@ -34,15 +34,6 @@ It should be noted that the `--privileged` option is necessary only for **Fail2b
 If it is the first run, you will see the settings page, make your changes and save it, installation will continue...
 *(You need to have the base knowledge of the [vi editor](http://google.com/#q=vi+editor))*
 
-Save changes
-------------
-
-It would be nice, if you commit changes to own image after the first installation
-
-```bash
-docker commit kolab kolab:example.org
-```
-
 Systemd unit
 ------------
 

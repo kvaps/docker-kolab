@@ -30,15 +30,19 @@ RUN yum -y install supervisor expect mod_ssl nginx php-fpm opendkim fail2ban git
 #Update php-zlib
 RUN pecl install zip
 
+#User for 389-ds
+RUN adduser dirsrv
+
+# fix: http://trac.roundcube.net/ticket/1490424
+RUN sed -i "840s/\$this/\$me/g"  /usr/share/roundcubemail/program/lib/Roundcube/rcube_ldap.php 
+
 # MySQL LDAP IMAP
 VOLUME ["/data"]
 
 WORKDIR /root
 
-# fix: http://trac.roundcube.net/ticket/1490424
-RUN sed -i "840s/\$this/\$me/g"  /usr/share/roundcubemail/program/lib/Roundcube/rcube_ldap.php 
-
 # Add config and setup script, run it
+ADD wrappers/* /bin/
 ADD settings.ini /etc/settings.ini
 ADD setup.sh /bin/setup.sh
 ENTRYPOINT ["/bin/setup.sh"]
