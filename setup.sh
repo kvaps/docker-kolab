@@ -68,14 +68,34 @@ dir=(
     /etc/ssl
     /etc/mailname
     /etc/mail
-    /var/lib/mysql 
-    /var/lib/dirsrv 
-    /var/lib/imap 
-    /var/lib/nginx 
-    /var/lib/spamassassin 
-    /var/lib/clamav 
-    /var/spool 
-    /var/log 
+    /var/lib/mysql
+    /var/lib/dirsrv
+    /var/lib/imap
+    /var/lib/nginx
+    /var/lib/spamassassin
+    /var/lib/clamav
+    /var/spool/amavisd
+    /var/spool/imap
+    /var/spool/mail
+    /var/spool/postfix
+    /var/spool/opendkim
+    /var/spool/pykolab
+    /var/log/chwala
+    /var/log/clamav
+    /var/log/dirsrv
+    /var/log/httpd
+    /var/log/iRony
+    /var/log/kolab
+    /var/log/kolab-freebusy
+    /var/log/kolab-syncroton
+    /var/log/kolab-webadmin
+    /var/log/maillog
+    /var/log/messages
+    /var/log/mysqld.log
+    /var/log/nginx
+    /var/log/php-fpm
+    /var/log/roundcubemail
+    /var/log/supervisor
 )
 
 
@@ -85,6 +105,8 @@ move_dirs()
 
     mkdir -p /data/etc
     mkdir -p /data/var/lib
+    mkdir -p /data/var/spool
+    mkdir -p /data/var/log
 
     for i in "${dir[@]}"; do mv $i /data$i; done
 
@@ -93,7 +115,7 @@ move_dirs()
 
 link_dirs()
 {
-    echo "info:  start removing default lib and log folders"
+    echo "info:  start linking default lib and log folders to /data volume"
 
     for i in "${dir[@]}"; do rm -rf $i && ln -s /data$i $i ; done
  
@@ -102,7 +124,7 @@ link_dirs()
     chown dirsrv:dirsrv /var/lock/dirsrv/slapd-$(hostname -s)/
     chown dirsrv:dirsrv /var/run/dirsrv
 
-    echo "info:  finished removing default lib and log folders"
+    echo "info:  finished linking default lib and log folders to /data volume"
 }
 
 configure_supervisor()
@@ -918,7 +940,7 @@ elif [ -d /data/etc/dirsrv/slapd-* ] ; then
 else
 
      while true; do
-        read -p "warn:  Kolab data not detected on /data volume, this is first installation? " yn
+        read -p "warn:  Kolab data not detected on /data volume, this is first installation(yes/no)? " yn
         case $yn in
             [Yy]* ) move_dirs; link_dirs; setup_wizard; break;;
             [Nn]* ) echo "info:  Installation canceled"; exit;;
