@@ -15,7 +15,10 @@ docker run \
     --privileged \
     --name kolab \
     -h mail.example.org \
-    -v /var/lib/kolab/:/data \
+    -v /etc/kolab:/data/etc \
+    -v /var/spool/kolab:/data/var/spool \
+    -v /var/lib/kolab:/data/var/lib \
+    -v /var/log/kolab:/data/var/log \
     -p 80:80 \
     -p 443:443 \
     -p 25:25 \
@@ -30,6 +33,11 @@ docker run \
     kvaps/kolab
 ```
 It should be noted that the `--privileged` option is necessary only for **Fail2ban**, if you do not plan to use **Fail2ban**, you can exclude it.
+
+You can also isolate Kolab from your host, simply replace `-v` options like this:
+```bash
+    -v /opt/kolab:/data \
+```
 
 If it is the first run, you will see the settings page, make your changes and save it, installation will continue...
 *(You need to have the base knowledge of the [vi editor](http://google.com/#q=vi+editor))*
