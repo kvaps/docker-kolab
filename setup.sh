@@ -1,5 +1,5 @@
 #!/bin/bash
-usage ()
+esage ()
 {
      echo
      echo "Usage:    ./setup.sh [ARGUMENT]"
@@ -228,8 +228,17 @@ expect  "Starting kolabd:"
 exit    0
 EOF
 
-        # SSL by default in apache
+        # Redirect to /webmail/ in apache
         sed -i -e 's/<Directory \/>/<Directory \/>\n    RedirectMatch \^\/$ \/webmail\//g' /etc/httpd/conf/httpd.conf
+
+        # SSL by default in apache
+        cat >> /etc/httpd/conf/httpd.conf << EOF
+
+<VirtualHost _default_:80>
+    RewriteEngine On
+    RewriteRule ^(.*)$ https://%{HTTP_HOST}\$1 [R=301,L]
+</VirtualHost>
+EOF
 
         #fix: Certificates changed by default from localhost.pem to key and crt
         postconf -e smtpd_tls_key_file=/etc/pki/tls/private/localhost.key
@@ -573,7 +582,7 @@ configure_amavis()
 
 configure_ssl()
 {
-    if [ -f /etc/pki/tls/certs/domain.crt ] ; then
+    if [ -f /etc/pki/tls/certs/$(hostname -f).crt ] ; then
         echo "warn:  SSL already configured, but that's nothing wrong, run again..."
     fi
     echo "info:  start configuring SSL"
@@ -600,75 +609,66 @@ EOF
 # updating SSL-certificates procedure.
 EOF
 
-    if [ -f /etc/pki/tls/private/domain.key ] ; then
-	cat /etc/pki/tls/private/domain.key /tmp/update_ssl_key_message.txt > /tmp/update_ssl_domain.key
+    if [ -f /etc/pki/tls/private/$(hostname -f).key ] ; then
+	cat /etc/pki/tls/private/$(hostname -f).key /tmp/update_ssl_key_message.txt > /tmp/update_ssl_$(hostname -f).key
     else
-	cat /tmp/update_ssl_key_message.txt > /tmp/update_ssl_domain.key
+	cat /tmp/update_ssl_key_message.txt > /tmp/update_ssl_$(hostname -f).key
     fi
 
-    if [ -f /etc/pki/tls/certs/domain.crt ] ; then
-	cat /etc/pki/tls/certs/domain.crt /tmp/update_ssl_crt_message.txt > /tmp/update_ssl_domain.crt
+    if [ -f /etc/pki/tls/certs/$(hostname -f).crt ] ; then
+	cat /etc/pki/tls/certs/$(hostname -f).crt /tmp/update_ssl_crt_message.txt > /tmp/update_ssl_$(hostname -f).crt
     else
-	cat /tmp/update_ssl_crt_message.txt > /tmp/update_ssl_domain.crt
+	cat /tmp/update_ssl_crt_message.txt > /tmp/update_ssl_$(hostname -f).crt
     fi
-    if [ -f /etc/pki/tls/certs/ca.pem ] ; then
-	cat /etc/pki/tls/certs/ca.pem /tmp/update_ssl_ca_message.txt > /tmp/update_ssl_ca.pem
+    if [ -f /etc/pki/tls/certs/$(hostname -f)-ca.pem ] ; then
+	cat /etc/pki/tls/certs/$(hostname -f)-ca.pem /tmp/update_ssl_ca_message.txt > /tmp/update_ssl_$(hostname -f)-ca.pem
     else
-	cat /tmp/update_ssl_ca_message.txt > /tmp/update_ssl_ca.pem
+	cat /tmp/update_ssl_ca_message.txt > /tmp/update_ssl_$(hostname -f)-ca.pem
     fi
 
-    vi /tmp/update_ssl_domain.key
-    vi /tmp/update_ssl_domain.crt
-    vi /tmp/update_ssl_ca.pem
+    vi /tmp/update_ssl_$(hostname -f).key
+    vi /tmp/update_ssl_$(hostname -f).crt
+    vi /tmp/update_ssl_$(hostname -f)-ca.pem
 
-    if [ "$(grep -c -v -E "^#|^$" /tmp/update_ssl_domain.key)" != "0" ] || [ "$(grep -c -v -E "^#|^$" /tmp/update_ssl_domain.crt)" != "0" ] || [ "$(grep -c -v -E "^#|^$" /tmp/update_ssl_ca.pem)" != "0" ] ; then
-        grep -v -E "^#|^$" /tmp/update_ssl_domain.key > /etc/pki/tls/private/domain.key
-        grep -v -E "^#|^$" /tmp/update_ssl_domain.crt > /etc/pki/tls/certs/domain.crt
-        grep -v -E "^#|^$" /tmp/update_ssl_ca.pem > /etc/pki/tls/certs/ca.pem
+    if [ "$(grep -c -v -E "^#|^$" /tmp/update_ssl_$(hostname -f).key)" != "0" ] || [ "$(grep -c -v -E "^#|^$" /tmp/update_ssl_$(hostname -f).crt)" != "0" ] || [ "$(grep -c -v -E "^#|^$" /tmp/update_ssl_$(hostname -f)-ca.pem)" != "0" ] ; then
+        grep -v -E "^#|^$" /tmp/update_ssl_$(hostname -f).key > /etc/pki/tls/private/$(hostname -f).key
+        grep -v -E "^#|^$" /tmp/update_ssl_$(hostname -f).crt > /etc/pki/tls/certs/$(hostname -f).crt
+        grep -v -E "^#|^$" /tmp/update_ssl_$(hostname -f)-ca.pem > /etc/pki/tls/certs/$(hostname -f)-ca.pem
 
         # Create certificate bundles
-        cat /etc/pki/tls/certs/domain.crt /etc/pki/tls/private/domain.key /etc/pki/tls/certs/ca.pem > /etc/pki/tls/private/domain.bundle.pem
-        cat /etc/pki/tls/certs/domain.crt /etc/pki/tls/certs/ca.pem > /etc/pki/tls/certs/domain.bundle.pem
-        cat /etc/pki/tls/certs/ca.pem > /etc/pki/tls/certs/domain.ca-chain.pem
+        cat /etc/pki/tls/certs/$(hostname -f).crt /etc/pki/tls/private/$(hostname -f).key /etc/pki/tls/certs/$(hostname -f)-ca.pem > /etc/pki/tls/private/$(hostname -f).bundle.pem
+        cat /etc/pki/tls/certs/$(hostname -f).crt /etc/pki/tls/certs/$(hostname -f)-ca.pem > /etc/pki/tls/certs/$(hostname -f).bundle.pem
+        cat /etc/pki/tls/certs/$(hostname -f)-ca.pem > /etc/pki/tls/certs/$(hostname -f).ca-chain.pem
         # Set access rights
         chown -R root:mail /etc/pki/tls/private
-        chmod 600 /etc/pki/tls/private/domain.key
+        chmod 600 /etc/pki/tls/private/$(hostname -f).key
         chmod 750 /etc/pki/tls/private
         chmod 640 /etc/pki/tls/private/*
         # Add CA to system’s CA bundle
-        cat /etc/pki/tls/certs/ca.pem >> /etc/pki/tls/certs/ca-bundle.crt
+        cat /etc/pki/tls/certs/$(hostname -f)-ca.pem >> /etc/pki/tls/certs/ca-bundle.crt
 
         # Configure apache for SSL
 
         # Set your ssl certificates 
-        sed -i -e '/SSLCertificateFile \/etc\/pki/c\SSLCertificateFile /etc/pki/tls/certs/domain.crt' /etc/httpd/conf.d/ssl.conf
-        sed -i -e '/SSLCertificateKeyFile \/etc\/pki/c\SSLCertificateKeyFile /etc/pki/tls/private/domain.key' /etc/httpd/conf.d/ssl.conf
-        sed -i -e '/SSLCertificateChainFile \/etc\/pki/c\SSLCertificateChainFile /etc/pki/tls/certs/domain.ca-chain.pem' /etc/httpd/conf.d/ssl.conf
-            
-        # Create a vhost for http (:80) to redirect everything to https
-        cat >> /etc/httpd/conf/httpd.conf << EOF
-
-<VirtualHost _default_:80>
-    RewriteEngine On
-    RewriteRule ^(.*)$ https://%{HTTP_HOST}$1 [R=301,L]
-</VirtualHost>
-EOF
+        sed -i -e '/SSLCertificateFile \/etc\/pki/c\SSLCertificateFile /etc/pki/tls/certs/'$(hostname -f)'.crt' /etc/httpd/conf.d/ssl.conf
+        sed -i -e '/SSLCertificateKeyFile \/etc\/pki/c\SSLCertificateKeyFile /etc/pki/tls/private/'$(hostname -f)'.key' /etc/httpd/conf.d/ssl.conf
+        sed -i -e '/SSLCertificateChainFile \/etc\/pki/c\SSLCertificateChainFile /etc/pki/tls/certs/'$(hostname -f)'.ca-chain.pem' /etc/httpd/conf.d/ssl.conf
 
         # Configuration nginx for SSL
-        sed -i -e '/    ssl_certificate \/etc\/pki/c\    ssl_certificate /etc/pki/tls/certs/domain.bundle.pem;' /etc/nginx/conf.d/default.conf
-        sed -i -e '/    ssl_certificate_key \/etc\/pki/c\    ssl_certificate_key /etc/pki/tls/private/domain.key;' /etc/nginx/conf.d/default.conf
+        sed -i -e '/    ssl_certificate \/etc\/pki/c\    ssl_certificate /etc/pki/tls/certs/'$(hostname -f)'.bundle.pem;' /etc/nginx/conf.d/default.conf
+        sed -i -e '/    ssl_certificate_key \/etc\/pki/c\    ssl_certificate_key /etc/pki/tls/private/'$(hostname -f)'.key;' /etc/nginx/conf.d/default.conf
     
         #Configure Cyrus for SSL
         sed -r -i \
-            -e 's|^tls_server_cert:.*|tls_server_cert: /etc/pki/tls/certs/domain.crt|g' \
-            -e 's|^tls_server_key:.*|tls_server_key: /etc/pki/tls/private/domain.key|g' \
-            -e 's|^tls_server_ca_file:.*|tls_server_ca_file: /etc/pki/tls/certs/domain.ca-chain.pem|g' \
+            -e 's|^tls_server_cert:.*|tls_server_cert: /etc/pki/tls/certs/'$(hostname -f)'.crt|g' \
+            -e 's|^tls_server_key:.*|tls_server_key: /etc/pki/tls/private/'$(hostname -f)'.key|g' \
+            -e 's|^tls_server_ca_file:.*|tls_server_ca_file: /etc/pki/tls/certs/'$(hostname -f)'.ca-chain.pem|g' \
             /etc/imapd.conf
     
         #Configure Postfix for SSL
-        postconf -e smtpd_tls_key_file=/etc/pki/tls/private/domain.key
-        postconf -e smtpd_tls_cert_file=/etc/pki/tls/certs/domain.crt
-        postconf -e smtpd_tls_CAfile=/etc/pki/tls/certs/domain.ca-chain.pem
+        postconf -e smtpd_tls_key_file=/etc/pki/tls/private/$(hostname -f).key
+        postconf -e smtpd_tls_cert_file=/etc/pki/tls/certs/$(hostname -f).crt
+        postconf -e smtpd_tls_CAfile=/etc/pki/tls/certs/$(hostname -f).ca-chain.pem
     
         #Configure kolab-cli for SSL
         sed -r -i \
@@ -682,17 +682,21 @@ EOF
         sed -i -e '/^?>/d' /etc/roundcubemail/config.inc.php
         
         # Tell the webclient the SSL iRony URLs for CalDAV and CardDAV
+        if [ "$(grep -c "calendar_caldav_url" /etc/roundcubemail/config.inc.php)" == "0" ] ; then
         cat >> /etc/roundcubemail/config.inc.php << EOF
 # caldav/webdav
 \$config['calendar_caldav_url']             = "https://%h/iRony/calendars/%u/%i";
 \$config['kolab_addressbook_carddav_url']   = 'https://%h/iRony/addressbooks/%u/%i';
 EOF
+        fi
 
+        if [ "$(grep -c "force_https" /etc/roundcubemail/config.inc.php)" == "0" ] ; then
         # Redirect all http traffic to https
         cat >> /etc/roundcubemail/config.inc.php << EOF
 # Force https redirect for http requests
 \$config['force_https'] = true;
 EOF
+	fi
 
     else 
         echo "error: input of certifacte or private key or ca-sertificate is blank, skipping..."
