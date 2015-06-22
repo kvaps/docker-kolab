@@ -4,9 +4,6 @@ Kolab 3.4 in a Docker container
 This is my version of the Kolab for docker.
 Installation is supports automatic configuration **kolab**, **nginx**, **ssl**, **opendkim**, **amavis** and **fail2ban**
 
-Currently under development, but it is already possible to try use.
-This file I'll write later, once all completed yet.
-
 Run
 ---
 
@@ -15,10 +12,7 @@ docker run \
     --privileged \
     --name kolab \
     -h mail.example.org \
-    -v /etc/kolab:/data/etc \
-    -v /var/spool/kolab:/data/var/spool \
-    -v /var/lib/kolab:/data/var/lib \
-    -v /var/log/kolab:/data/var/log \
+    -v /opt/kolab:/data:rw \
     -p 80:80 \
     -p 443:443 \
     -p 25:25 \
@@ -34,9 +28,12 @@ docker run \
 ```
 It should be noted that the `--privileged` option is necessary only for **Fail2ban**, if you do not plan to use **Fail2ban**, you can exclude it.
 
-You can also isolate Kolab from your host, simply replace `-v` options like this:
+You can also more integrate Kolab to your system, simply replace `-v` options like this:
 ```bash
-    -v /opt/kolab:/data \
+    -v /etc/kolab:/data/etc:rw \
+    -v /var/spool/kolab:/data/var/spool:rw \
+    -v /var/lib/kolab:/data/var/lib:rw \
+    -v /var/log/kolab:/data/var/log:rw \
 ```
 
 If it is the first run, you will see the settings page, make your changes and save it, installation will continue...
