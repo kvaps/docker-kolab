@@ -166,8 +166,8 @@ command=/bin/kolab-saslauthd-wrapper.sh
 ;command=/bin/opendkim-wrapper.sh 
 ;[program:fail2ban]
 ;command=/bin/fail2ban-wrapper.sh 
-;[program:set_spam_acl]
-;command=/bin/set_spam_acl.sh 
+;[program:set_default_sieve]
+;command=/bin/set_default_sieve.sh 
 EOF
 
     echo "info:  finished configuring Supervisor"
@@ -568,11 +568,20 @@ configure_amavis()
         echo "info:  start configuring amavis"
         
         sed -i '/^[^#]*$sa_spam_subject_tag/s/^/#/' /etc/amavisd/amavisd.conf
-        sed -i '/^# $recipient_delimiter/s/^# //' /etc/amavisd/amavisd.conf
         sed -i 's/^\($final_spam_destiny.*= \).*/\1D_PASS;/' /etc/amavisd/amavisd.conf
+
+        # Create default sieve script
+        cat > /var/lib/imap/sieve/global/default.script << EOF
+if header :contains "X-Spam-Flag:" "YES"
+{
+            fileinto "Spam";
+}
+EOF
+        # Compile it
+        /usr/lib/cyrus-imapd/sievec /var/lib/imap/sieve/global/default.script /var/lib/imap/sieve/global/default.bc
     
-        # Uncoment set_spam_acl
-        sed -i --follow-symlinks '/^;.*set_spam_acl/s/^;//' /etc/supervisord.conf
+        # Uncoment set_default_sieve
+        sed -i --follow-symlinks '/^;.*set_default_sieve/s/^;//' /etc/supervisord.conf
 
         echo "info:  finished configuring amavis"
     else
