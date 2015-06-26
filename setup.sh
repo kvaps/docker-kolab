@@ -869,9 +869,6 @@ configure_zipdownload()
     if [ "$(grep -c "zipdownload" /etc/roundcubemail/config.inc.php)" == "0" ] ; then
         echo "info:  start configuring zipdownload plugin"
 
-        git clone https://github.com/roundcube/roundcubemail/ --depth 1 /tmp/roundcube
-        mv /tmp/roundcube/plugins/zipdownload/ /usr/share/roundcubemail/plugins/
-        rm -rf /tmp/roundcube/
         sed -i "/'contextmenu',/a \            'zipdownload'," /etc/roundcubemail/config.inc.php
 
         echo "info:  finished configuring zipdownload plugin"

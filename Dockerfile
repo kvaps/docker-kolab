@@ -30,6 +30,12 @@ RUN yum -y install supervisor expect mod_ssl nginx php-fpm opendkim fail2ban git
 #Update php-zlib
 RUN pecl install zip
 
+#Install zipdownload
+
+RUN git clone https://github.com/roundcube/roundcubemail/ --depth 1 /tmp/roundcube
+RUN mv /tmp/roundcube/plugins/zipdownload/ /usr/share/roundcubemail/plugins/
+RUN rm -rf /tmp/roundcube/
+
 #User for 389-ds
 RUN adduser dirsrv
 
