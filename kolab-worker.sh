@@ -18,11 +18,9 @@ if [ "$1" = "start" ]; then
     load_config $2
     #docker start -a $DOCKER_NAME
     if [ "$(docker ps -a | grep -c $DOCKER_NAME)" = "0" ]; then 
-        docker run --name $DOCKER_NAME -h $DOCKER_HOSTNAME -v $DOCKER_VOLUME:/data:rw $DOCKER_OPTIONS --entrypoint=/bin/bash kvaps/kolab
-        until [ "`/usr/bin/docker inspect -f {{.State.Running}} $DOCKER_NAME`" == "true" ]; do sleep 0.1; done;
+        docker run --name $DOCKER_NAME -h $DOCKER_HOSTNAME -v $DOCKER_VOLUME:/data:rw $DOCKER_OPTIONS -d kvaps/kolab
         pipework $EXT_INTERFACE -i eth1 $DOCKER_NAME $EXT_ADDRESS@$EXT_GATEWAY
-        #pipework $INT_BRIDGE -i eth2 $DOCKER_NAME $INT_ADDRESS
-        docker exec -ti $DOCKER_NAME /bin/setup.sh
+        pipework $INT_BRIDGE -i eth2 $DOCKER_NAME $INT_ADDRESS &&
         docker exec $DOCKER_NAME $INT_ROUTE
     else
         echo "containr already exist"

@@ -83,23 +83,21 @@ vi /etc/systemd/system/kolab@.service
 Description=Kolab Groupware for %I
 After=docker.service
 Requires=docker.service
- 
+
 [Service]
 EnvironmentFile=/etc/kolab-docker/%i
 Restart=always
- 
+
 ExecStart=/bin/bash -c '/usr/bin/docker run --name ${DOCKER_NAME} -h ${DOCKER_HOSTNAME} -v ${DOCKER_VOLUME}:/data:rw ${DOCKER_OPTIONS} kvaps/kolab'
 ExecStartPost=/bin/bash -c ' \
-        until [ "`/usr/bin/docker inspect -f {{.State.Running}} ${DOCKER_NAME}`" == "true" ]; do sleep 0.1; done; \
         pipework ${EXT_INTERFACE} -i eth1 ${DOCKER_NAME} ${EXT_ADDRESS}@${EXT_GATEWAY}; \
-        #pipework ${INT_BRIDGE} -i eth2 ${DOCKER_NAME} ${INT_ADDRESS}; \
-        docker exec ${DOCKER_NAME} ${INT_ROUTE}'
- 
+        pipework ${INT_BRIDGE} -i eth2 ${DOCKER_NAME} ${INT_ADDRESS}; \
+        docker exec ${DOCKER_NAME} ${INT_ROUTE}; \
+
 ExecStop=/bin/bash -c 'docker stop -t 2 ${DOCKER_NAME} && docker rm -f ${DOCKER_NAME}'
- 
+
 [Install]
 WantedBy=multi-user.target
-
 ```
 
 And this config for each instance:
@@ -110,15 +108,16 @@ vi /etc/kolab-docker/example.org
 DOCKER_HOSTNAME=mail.example.org
 DOCKER_NAME="kolab-$(echo $DOCKER_HOSTNAME | cut -d. -f 2-)"
 DOCKER_VOLUME="/opt/kolab-$(echo $DOCKER_HOSTNAME | cut -d. -f 2-)"
-DOCKER_OPTIONS='--cap-add=NET_ADMIN -p 389'
+DOCKER_OPTIONS='--cap-add=NET_ADMIN --net=none'
  
 EXT_INTERFACE=eth2
 EXT_ADDRESS='10.10.10.123/24'
 EXT_GATEWAY='10.10.10.1'
  
-#INT_BRIDGE=br0
-#INT_ADDRESS='10.9.8.2/24'
-INT_ROUTE='ip route add 192.168.1.0/24 via 172.17.42.1'
+INT_BRIDGE=br0
+#INT_ADDRESS='192.168.10.123/24'
+INT_ADDRESS='dhclient'
+INT_ROUTE='ip route add 192.168.1.0/24 via 192.168.10.1'
 ```
 Just simple use:
 ```bash

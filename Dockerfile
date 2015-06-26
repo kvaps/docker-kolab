@@ -25,7 +25,7 @@ RUN sed -i '/nodocs/d' /etc/yum.conf
 RUN yum -y install kolab
 
 # Install additional soft
-RUN yum -y install supervisor expect mod_ssl nginx php-fpm opendkim fail2ban git php-devel zlib-devel gcc pcre-devel
+RUN yum -y install supervisor expect mod_ssl nginx php-fpm opendkim fail2ban git php-devel zlib-devel gcc pcre-devel dhclient
 
 #Update php-zlib
 RUN pecl install zip
