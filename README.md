@@ -110,7 +110,7 @@ vi /etc/kolab-docker/example.org
 DOCKER_HOSTNAME=mail.example.org
 DOCKER_NAME="kolab-$(echo $DOCKER_HOSTNAME | cut -d. -f 2-)"
 DOCKER_VOLUME="/opt/kolab-$(echo $DOCKER_HOSTNAME | cut -d. -f 2-)"
-DOCKER_OPTIONS='--cap-add=NET_ADMIN -p 389:389'
+DOCKER_OPTIONS='--cap-add=NET_ADMIN -p 389'
  
 EXT_INTERFACE=eth2
 EXT_ADDRESS='10.10.10.123/24'
@@ -125,3 +125,5 @@ Just simple use:
 systemctl enable kolab@example.org
 systemctl start kolab@example.org
 ```
+
+For setup and manage container, can use [kolab-worker.sh](https://github.com/kvaps/docker-kolab/blob/master/kolab-worker.sh) script
