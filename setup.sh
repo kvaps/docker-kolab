@@ -1,5 +1,5 @@
 #!/bin/bash
-esage ()
+usage ()
 {
      echo
      echo "Usage:    ./setup.sh [ARGUMENT]"
