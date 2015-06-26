@@ -69,6 +69,7 @@ dir=(
     /etc/ssl
     /etc/mailname
     /etc/mail
+    /etc/pki
     /var/lib/mysql
     /var/lib/dirsrv
     /var/lib/imap
