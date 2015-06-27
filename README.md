@@ -90,9 +90,11 @@ Restart=always
 
 ExecStart=/bin/bash -c '/usr/bin/docker run --name ${DOCKER_NAME} -h ${DOCKER_HOSTNAME} -v ${DOCKER_VOLUME}:/data:rw ${DOCKER_OPTIONS} kvaps/kolab'
 ExecStartPost=/bin/bash -c ' \
-        pipework ${EXT_INTERFACE} -i eth1 ${DOCKER_NAME} ${EXT_ADDRESS}@${EXT_GATEWAY}; \
         pipework ${INT_BRIDGE} -i eth2 ${DOCKER_NAME} ${INT_ADDRESS}; \
+        pipework ${EXT_INTERFACE} -i eth1 ${DOCKER_NAME} ${EXT_ADDRESS}@${EXT_GATEWAY}; \
         docker exec ${DOCKER_NAME} ${INT_ROUTE}; \
+        docker exec ${DOCKER_NAME} bash -c \'echo 127.0.0.1 $(hostname -s) $(hostname -f) >> /etc/hosts\'; \
+        docker exec ${DOCKER_NAME} ifconfig eth2 mtu 1446 '
 
 ExecStop=/bin/bash -c 'docker stop -t 2 ${DOCKER_NAME} && docker rm -f ${DOCKER_NAME}'
 
