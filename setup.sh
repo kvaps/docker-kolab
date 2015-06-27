@@ -13,8 +13,9 @@ usage ()
      echo "    ssl                   - Configure SSL using your certs"
      echo "    fail2ban              - Configure Fail2ban"
      echo "    dkim                  - Configure OpenDKIM"
-     echo "    larry	             - Set Larry skin as default"
+     echo "    larry                 - Set Larry skin as default"
      echo "    zipdownload           - Configure zipdownload plugin for roundcube"
+     echo "    milter                - Configure another milter; disable amavis and clamd"
      echo
      exit
 }
@@ -878,6 +879,39 @@ configure_zipdownload()
     fi
 }
 
+configure_milter()
+{
+    if [ "$(grep "smtpd_milters" /etc/postfix/main.cf | grep -cv localhost)" != "0" ] ; then
+        echo "warn:  another milter already configured, but that's nothing wrong, run again..."
+    fi
+
+    echo "info:  start configuring zipdownload plugin"
+
+    #Reconfigure OpenDKIM
+    if [ "$(postconf smtpd_milters | grep -c inet:localhost:8891)" != "0" ] && [ "$(grep -c "smtpd_milters=inet:localhost:8891" /etc/postfix/master.cf)" == "0" ] ; then
+        sed -i "/^127\.0\.0\.1\:10027.*smtpd/a \    -o smtpd_milters=inet:localhost:8891" /etc/postfix/master.cf
+        sed -i "/^127\.0\.0\.1\:10027.*smtpd/a \    -o milter_protocol=2" /etc/postfix/master.cf
+    fi
+
+    postconf -e milter_protocol=$extras_another_milter_protocol
+    postconf -e smtpd_milters=$extras_another_milter_address
+    postconf -e non_smtpd_milters=$extras_another_milter_address
+    postconf -e content_filter=smtp-wallace:[127.0.0.1]:10026
+    
+    #Disable amavis
+    awk '/smtp-amavis/{f=1} !NF{f=0} f{$0="#" $0} 1' /etc/postfix/master.cf > /tmp/master.cf.tmp
+    awk '/127.0.0.1:10025/{f=1} !NF{f=0} f{$0="#" $0} 1' /tmp/master.cf.tmp > /etc/postfix/master.cf
+    rm -f /tmp/master.cf.tmp
+
+    sed -i '/^[^#].*receive_override_options=no_milters/d' /etc/postfix/master.cf
+
+    # Comment amavis and clamd
+    sed -i --follow-symlinks '/^[^;]*amavisd/s/^/;/' /etc/supervisord.conf
+    sed -i --follow-symlinks '/^[^;]*clamd/s/^/;/' /etc/supervisord.conf
+
+    echo "info:  finished configuring zipdownload plugin"
+}
+
 print_passwords()
 {
     echo "======================================================="
@@ -915,6 +949,7 @@ setup_wizard ()
     # Extras
     if [ $extras_configure_larry_skin = "true" ] ; then configure_larry_skin ; fi
     if [ $extras_configure_zipdownload = "true" ] ; then configure_zipdownload ; fi
+    if [ $extras_configure_another_milter = "true" ] ; then configure_milter ; fi
     # Print parameters
     if [ $main_configure_kolab = "true" ] ; then print_passwords ; fi
     if [ $main_configure_dkim = "true" ] ; then print_dkim_keys ; fi
@@ -938,6 +973,7 @@ if [ "${#1}" -ge "1" ] ; then
     # Extras
     if [ "$1" == "larry" ] ; then configure_larry_skin ; fi
     if [ "$1" == "zipdownload" ] ; then configure_zipdownload ; fi
+    if [ "$1" == "milter" ] ; then configure_milter ; fi
     # Print parameters
     if [ "$1" = "kolab" ] ; then print_passwords ; fi
     if [ "$1" = "dkim" ] ; then print_dkim_keys ; fi
