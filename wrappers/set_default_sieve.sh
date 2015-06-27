@@ -10,7 +10,7 @@ for folder in ${user_sieve_folders[@]} ; do
     if [ -f $folder'roundcube.script' ] ; then
         if [ "$(grep -c "include :global \"default\"" $folder'roundcube.script')" -eq 0 ]; then 
             echo Inject rules $folder'roundcube.script'
-            sed -i -e '2 c require "include";\ninclude :global "default";' $folder'roundcube.script'
+            sed -i -e '1 a require "include";\ninclude :global "default";' $folder'roundcube.script'
             /usr/lib/cyrus-imapd/sievec $folder'roundcube.script' $folder'roundcube.bc'
             chown -R cyrus:mail $folder
         else
