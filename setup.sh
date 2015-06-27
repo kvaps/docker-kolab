@@ -38,6 +38,7 @@ get_config()
             fi
         fi
     done < $1
+    chmod 600 /etc/settings.ini
 }
 
 dir=(
