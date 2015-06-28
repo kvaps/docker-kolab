@@ -5,6 +5,7 @@ usage ()
      echo "Usage:    ./setup.sh [ARGUMENT]"
      echo
      echo "Arguments:"
+     echo "    run                   - Auto start all services or install wizard in case of initial setup"
      echo "    link                  - Create symlinks default folders to /data"
      echo "    kolab                 - Configure Kolab"
      echo "    amavis                - Configure amavis"
@@ -955,50 +956,47 @@ setup_wizard ()
     if [ $main_configure_dkim = "true" ] ; then print_dkim_keys ; fi
 }
 
-if [ "$1" = "--help" ] || [ "$1" = "-h" ] || [ "$1" = "help" ] ; then 
-    usage
-fi
+run ()
+{
+     if [ -d /data/etc/dirsrv/slapd-* ] ; then
+     
+         echo "info:  Kolab installation detected on /data volume, run relinkink..."
+         link_dirs
+         
+         echo "info:  Starting services"
+         /usr/bin/supervisord
+     
+     else
+     
+          while true; do
+             read -p "warn:  Kolab data not detected on /data volume, this is first installation(yes/no)? " yn
+             case $yn in
+                 [Yy]* ) move_dirs; link_dirs; setup_wizard; break;;
+                 [Nn]* ) echo "info:  Installation canceled"; exit;;
+                 * ) echo "Please answer yes or no.";;
+             esac
+         done
+     
+     fi
+}
 
-if [ "${#1}" -ge "1" ] ; then
-
-    get_config /data/etc/settings.ini
-    # Main
-    if [ "$1" == "kolab" ] ; then configure_kolab ; print_passwords ; fi
-    if [ "$1" == "nginx" ] ; then configure_nginx ; fi
-    if [ "$1" == "nginx_cache" ] ; then configure_nginx_cache ; fi
-    if [ "$1" == "amavis" ] ; then configure_amavis ; fi
-    if [ "$1" == "ssl" ] ; then configure_ssl ; fi
-    if [ "$1" == "fail2ban" ] ; then configure_fail2ban ; fi
-    if [ "$1" == "dkim" ] ; then configure_dkim ; print_dkim_keys ; fi
-    # Extras
-    if [ "$1" == "larry" ] ; then configure_larry_skin ; fi
-    if [ "$1" == "zipdownload" ] ; then configure_zipdownload ; fi
-    if [ "$1" == "milter" ] ; then configure_milter ; fi
-    # Print parameters
-    if [ "$1" = "kolab" ] ; then print_passwords ; fi
-    if [ "$1" = "dkim" ] ; then print_dkim_keys ; fi
-    if [ "$1" = "link" ] ; then link_dirs ; fi
-
-elif [ -d /data/etc/dirsrv/slapd-* ] ; then
-
-    echo "info:  Kolab installation detected on /data volume, run relinkink..."
-    link_dirs
-    
-    echo "info:  Starting services"
-    /usr/bin/supervisord
-
-else
-
-     while true; do
-        read -p "warn:  Kolab data not detected on /data volume, this is first installation(yes/no)? " yn
-        case $yn in
-            [Yy]* ) move_dirs; link_dirs; setup_wizard; break;;
-            [Nn]* ) echo "info:  Installation canceled"; exit;;
-            * ) echo "Please answer yes or no.";;
-        esac
-    done
-
-fi
-
-
-
+get_config /data/etc/settings.ini
+# Run
+if [ "$1" == "run" ] ; then run
+# Main
+elif [ "$1" == "kolab" ] ; then configure_kolab ; print_passwords
+elif [ "$1" == "nginx" ] ; then configure_nginx
+elif [ "$1" == "nginx_cache" ] ; then configure_nginx_cache
+elif [ "$1" == "amavis" ] ; then configure_amavis
+elif [ "$1" == "ssl" ] ; then configure_ssl
+elif [ "$1" == "fail2ban" ] ; then configure_fail2ban
+elif [ "$1" == "dkim" ] ; then configure_dkim ; print_dkim_keys
+# Extras
+elif [ "$1" == "larry" ] ; then configure_larry_skin
+elif [ "$1" == "zipdownload" ] ; then configure_zipdownload
+elif [ "$1" == "milter" ] ; then configure_milter
+# Print parameters
+elif [ "$1" == "kolab" ] ; then print_passwords
+elif [ "$1" == "dkim" ] ; then print_dkim_keys
+elif [ "$1" == "link" ] ; then link_dirs
+else usage ; fi
