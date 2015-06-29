@@ -672,7 +672,7 @@ EOF
         sed -i -e '/    ssl_certificate_key \/etc\/pki/c\    ssl_certificate_key /etc/pki/tls/private/'$(hostname -f)'.key;' /etc/nginx/conf.d/default.conf
     
         #Configure Cyrus for SSL
-        sed -r -i \
+        sed -r -i --follow-symlinks \
             -e 's|^tls_server_cert:.*|tls_server_cert: /etc/pki/tls/certs/'$(hostname -f)'.crt|g' \
             -e 's|^tls_server_key:.*|tls_server_key: /etc/pki/tls/private/'$(hostname -f)'.key|g' \
             -e 's|^tls_server_ca_file:.*|tls_server_ca_file: /etc/pki/tls/certs/'$(hostname -f)'.ca-chain.pem|g' \
