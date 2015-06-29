@@ -576,9 +576,10 @@ configure_amavis()
 
         # Create default sieve script
         cat > /var/lib/imap/sieve/global/default.script << EOF
-if header :contains "X-Spam-Flag:" "YES"
+require "fileinto";
+if header :contains "X-Spam-Flag" "YES"
 {
-            fileinto "Spam";
+        fileinto "Spam";
 }
 EOF
         # Compile it
