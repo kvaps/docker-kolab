@@ -7,23 +7,39 @@ sieve_stor=/var/lib/imap/sieve/
 user_sieve_folders=($(find $imap_stor -name Spam -type d -print | sed 's|'$imap_stor'|'$sieve_stor'|' | sed 's|/user||' | sed 's|/Spam|/|'))
  
 for folder in ${user_sieve_folders[@]} ; do
-    if [ -f $folder'roundcube.script' ] ; then
-        if [ "$(grep -c "include :global \"default\"" $folder'roundcube.script')" -eq 0 ]; then 
-            echo Inject rules $folder'roundcube.script'
-            sed -i -e '1 a require "include";\ninclude :global "default";' $folder'roundcube.script'
-            /usr/lib/cyrus-imapd/sievec $folder'roundcube.script' $folder'roundcube.bc'
+
+    if [ -f $folder'USER.script' ] ; then
+
+        cd $folder
+
+        if [ "$(grep -c 'require.*include' 'USER.script')" -eq 0 ]; then 
+            echo 'Inject  require "include";  '$folder'USER.script'
+            sed -i '1i require "include";' 'USER.script'
+            /usr/lib/cyrus-imapd/sievec 'USER.script' 'USER.bc'
             chown -R cyrus:mail $folder
-        else
-            echo Skipping $folder'roundcube.script'
         fi
+
+        if [ "$(grep -c "include.*:global.*default" 'USER.script')" -eq 0 ]; then 
+            echo 'Inject  include :global "default";  '$folder'USER.script'
+            echo 'include :global "default";' >> $folder'USER.script'
+            /usr/lib/cyrus-imapd/sievec 'USER.script' 'USER.bc'
+            chown -R cyrus:mail $folder
+        fi
+
+        echo -e $folder'USER.script'
+
     else
-        echo Creating new $folder'roundcube.script'
+
+        echo Creating new  $folder'USER.script'
         mkdir -p $folder
-        echo -e 'require "include";\ninclude :global "default";' > $folder'roundcube.script'
-        /usr/lib/cyrus-imapd/sievec $folder'roundcube.script' $folder'roundcube.bc'
-        ln -s $folder'roundcube.bc' $folder'defaultbc'
+        cd $folder
+        echo -e 'require ["include"];\ninclude :global "default";' > 'USER.script'
+        /usr/lib/cyrus-imapd/sievec 'USER.script' 'USER.bc'
+        ln -s 'USER.bc' 'defaultbc'
         chown -R cyrus:mail $folder
+
     fi  
+
 done
 
     sleep 15m 
