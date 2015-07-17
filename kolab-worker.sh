@@ -16,16 +16,13 @@ fi
 
 if [ "$1" = "start" ]; then
     load_config $2
-    #docker start -a $DOCKER_NAME
     if [ "$(docker ps -a | grep -c $DOCKER_NAME)" = "0" ]; then 
         docker run --name $DOCKER_NAME -h $DOCKER_HOSTNAME -v $DOCKER_VOLUME:/data:rw $DOCKER_OPTIONS -d kvaps/kolab
-        pipework $EXT_INTERFACE -i eth2 $DOCKER_NAME $EXT_ADDRESS@$EXT_GATEWAY
-        pipework $INT_BRIDGE -i eth1 $DOCKER_NAME $INT_ADDRESS
-        docker exec $DOCKER_NAME $INT_ROUTE
-        docker exec ${DOCKER_NAME} bash -c 'echo 127.0.0.1 $(hostname -s) $(hostname -f) >> /etc/hosts'
-        docker exec $DOCKER_NAME ifconfig eth2 mtu 1446
+        pipework $EXT_INTERFACE -i eth1 $DOCKER_NAME $EXT_ADDRESS@$EXT_GATEWAY
+        docker exec $DOCKER_NAME bash -c "$INT_ROUTE"
+        docker exec $DOCKER_NAME bash -c "if ! [ \"$DNS_SERVER\" = \"\" ] ; then echo nameserver $DNS_SERVER > /etc/resolv.conf ; fi"
     else
-        echo "containr already exist"
+        echo "container already exist"
         exit 1
     fi
 

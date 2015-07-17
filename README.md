@@ -90,11 +90,9 @@ Restart=always
 
 ExecStart=/bin/bash -c '/usr/bin/docker run --name ${DOCKER_NAME} -h ${DOCKER_HOSTNAME} -v ${DOCKER_VOLUME}:/data:rw ${DOCKER_OPTIONS} kvaps/kolab'
 ExecStartPost=/bin/bash -c ' \
-        pipework ${INT_BRIDGE} -i eth2 ${DOCKER_NAME} ${INT_ADDRESS}; \
         pipework ${EXT_INTERFACE} -i eth1 ${DOCKER_NAME} ${EXT_ADDRESS}@${EXT_GATEWAY}; \
-        docker exec ${DOCKER_NAME} ${INT_ROUTE}; \
-        docker exec ${DOCKER_NAME} bash -c \'echo 127.0.0.1 $(hostname -s) $(hostname -f) >> /etc/hosts\'; \
-        docker exec ${DOCKER_NAME} ifconfig eth2 mtu 1446 '
+        docker exec ${DOCKER_NAME} bash -c "${INT_ROUTE}"; \
+        docker exec ${DOCKER_NAME} bash -c "if ! [ \"${DNS_SERVER}\" = \"\" ] ; then echo nameserver ${DNS_SERVER} > /etc/resolv.conf ; fi" '
 
 ExecStop=/bin/bash -c 'docker stop -t 2 ${DOCKER_NAME} && docker rm -f ${DOCKER_NAME}'
 
@@ -110,16 +108,15 @@ vi /etc/kolab-docker/example.org
 DOCKER_HOSTNAME=mail.example.org
 DOCKER_NAME="kolab-$(echo $DOCKER_HOSTNAME | cut -d. -f 2-)"
 DOCKER_VOLUME="/opt/kolab-$(echo $DOCKER_HOSTNAME | cut -d. -f 2-)"
-DOCKER_OPTIONS='--cap-add=NET_ADMIN --net=none'
+DOCKER_OPTIONS='--cap-add=NET_ADMIN --link rmilter:rmilter -p 25:25 -p 389:389'
  
 EXT_INTERFACE=eth2
+#EXT_ADDRESS='dhclient D2:84:9D:CA:F3:BC'
 EXT_ADDRESS='10.10.10.123/24'
 EXT_GATEWAY='10.10.10.1'
+DNS_SERVER='8.8.8.8'
  
-INT_BRIDGE=br0
-#INT_ADDRESS='192.168.10.123/24'
-INT_ADDRESS='dhclient'
-INT_ROUTE='ip route add 192.168.1.0/24 via 192.168.10.1'
+INT_ROUTE='ip route add 192.168.1.0/24 via 172.17.42.1 dev eth0'
 ```
 Just simple use:
 ```bash
