@@ -9,7 +9,6 @@ Run
 
 ```bash
 docker run \
-    --privileged \
     --name kolab \
     -h mail.example.org \
     -v /opt/kolab:/data:rw \
