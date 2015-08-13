@@ -384,10 +384,17 @@ server {
     error_log /var/log/nginx/error.log;
 
     # enable ssl
-
+    ssl_session_cache shared:SSL:10m;
+    ssl_session_timeout 5m;
+    ssl_prefer_server_ciphers on;
+    ssl_stapling on;
+    ssl_stapling_verify on;
     ssl on;
     ssl_certificate /etc/pki/tls/certs/localhost.crt;
     ssl_certificate_key /etc/pki/tls/private/localhost.key;
+    ssl_protocols TLSv1 TLSv1.1 TLSv1.2;
+    ssl_ciphers 'HIGH:!aNULL:!MD5:!kEDH';
+    add_header Strict-Transport-Security "max-age=31536000; includeSubdomains;";
 
     # Start common Kolab config
 
@@ -558,7 +565,7 @@ configure_nginx_cache()
 
         sed -i '1ifastcgi_cache_path /var/lib/nginx/fastcgi/ levels=1:2 keys_zone=key-zone-name:16m max_size=256m inactive=1d;' /etc/nginx/conf.d/default.conf
 
-        sed -i '/ssl_certificate_key/a \    fastcgi_cache key-zone-name;' /etc/nginx/conf.d/default.conf
+        sed -i '/error_log/a \    fastcgi_cache key-zone-name;' /etc/nginx/conf.d/default.conf
 
         echo "info:  finished configuring nginx caching"
     else
@@ -669,8 +676,14 @@ EOF
         sed -i -e '/SSLCertificateChainFile \/etc\/pki/c\SSLCertificateChainFile /etc/pki/tls/certs/'$(hostname -f)'.ca-chain.pem' /etc/httpd/conf.d/ssl.conf
 
         # Configuration nginx for SSL
-        sed -i -e '/    ssl_certificate \/etc\/pki/c\    ssl_certificate /etc/pki/tls/certs/'$(hostname -f)'.bundle.pem;' /etc/nginx/conf.d/default.conf
-        sed -i -e '/    ssl_certificate_key \/etc\/pki/c\    ssl_certificate_key /etc/pki/tls/private/'$(hostname -f)'.key;' /etc/nginx/conf.d/default.conf
+        sed -i -e '/    ssl_certificate/c\    ssl_certificate /etc/pki/tls/certs/'$(hostname -f)'.crt;' /etc/nginx/conf.d/default.conf
+        sed -i -e '/    ssl_certificate_key/c\    ssl_certificate_key /etc/pki/tls/private/'$(hostname -f)'.key;' /etc/nginx/conf.d/default.conf
+        if [ "$(grep -c "ssl_trusted_certificate" /etc/nginx/conf.d/default.conf)" == "0" ] ; then
+             sed -i -e '/    ssl_certificate_key/a\    ssl_trusted_certificate /etc/pki/tls/certs/'$(hostname -f)'.ca-chain.pem;' /etc/nginx/conf.d/default.conf
+        else 
+             sed -i -e '/    ssl_trusted_certificate/c\    ssl_trusted_certificate /etc/pki/tls/certs/'$(hostname -f)'.ca-chain.pem;' /etc/nginx/conf.d/default.conf
+        fi
+
     
         #Configure Cyrus for SSL
         sed -r -i --follow-symlinks \
