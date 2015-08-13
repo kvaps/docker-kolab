@@ -7,16 +7,20 @@ usage ()
      echo "Arguments:"
      echo "    run                   - Auto start all services or install wizard in case of initial setup"
      echo "    link                  - Create symlinks default folders to /data"
-     echo "    kolab                 - Configure Kolab"
+     echo "    kolab                 - Configure Kolab from config"
      echo "    amavis                - Configure amavis"
      echo "    nginx                 - Configure nginx"
      echo "    nginx_cache           - Configure nginx caching"
      echo "    ssl                   - Configure SSL using your certs"
      echo "    fail2ban              - Configure Fail2ban"
      echo "    dkim                  - Configure OpenDKIM"
+     echo "    rcpt_off              - Disable the Recipient Policy"
+     echo "    locale                - Configure default locale from config"
+     echo "    php                   - Configure php.ini from config"
      echo "    larry                 - Set Larry skin as default"
      echo "    zipdownload           - Configure zipdownload plugin for roundcube"
-     echo "    milter                - Configure another milter; disable amavis and clamd"
+     echo "    trash                 - Configure trash folder istead flag for deletion"
+     echo "    milter                - Configure another milter; disable amavis and clamd from config"
      echo
      exit
 }
@@ -676,12 +680,12 @@ EOF
         sed -i -e '/SSLCertificateChainFile \/etc\/pki/c\SSLCertificateChainFile /etc/pki/tls/certs/'$(hostname -f)'.ca-chain.pem' /etc/httpd/conf.d/ssl.conf
 
         # Configuration nginx for SSL
-        sed -i -e '/    ssl_certificate/c\    ssl_certificate /etc/pki/tls/certs/'$(hostname -f)'.crt;' /etc/nginx/conf.d/default.conf
-        sed -i -e '/    ssl_certificate_key/c\    ssl_certificate_key /etc/pki/tls/private/'$(hostname -f)'.key;' /etc/nginx/conf.d/default.conf
+        sed -i -e '/ssl_certificate/c\    ssl_certificate /etc/pki/tls/certs/'$(hostname -f)'.crt;' /etc/nginx/conf.d/default.conf
+        sed -i -e '/ssl_certificate_key/c\    ssl_certificate_key /etc/pki/tls/private/'$(hostname -f)'.key;' /etc/nginx/conf.d/default.conf
         if [ "$(grep -c "ssl_trusted_certificate" /etc/nginx/conf.d/default.conf)" == "0" ] ; then
-             sed -i -e '/    ssl_certificate_key/a\    ssl_trusted_certificate /etc/pki/tls/certs/'$(hostname -f)'.ca-chain.pem;' /etc/nginx/conf.d/default.conf
+             sed -i -e '/ssl_certificate_key/a\    ssl_trusted_certificate /etc/pki/tls/certs/'$(hostname -f)'.ca-chain.pem;' /etc/nginx/conf.d/default.conf
         else 
-             sed -i -e '/    ssl_trusted_certificate/c\    ssl_trusted_certificate /etc/pki/tls/certs/'$(hostname -f)'.ca-chain.pem;' /etc/nginx/conf.d/default.conf
+             sed -i -e '/ssl_trusted_certificate/c\    ssl_trusted_certificate /etc/pki/tls/certs/'$(hostname -f)'.ca-chain.pem;' /etc/nginx/conf.d/default.conf
         fi
 
     
@@ -841,7 +845,7 @@ configure_dkim()
         chgrp opendkim /etc/opendkim/keys/*
         chmod g+r /etc/opendkim/keys/*
     
-            sed -i "/^127\.0\.0\.1\:[10025|10027].*smtpd/a \    -o receive_override_options=no_milters" /etc/postfix/master.cf
+        sed -i "/^127\.0\.0\.1\:[10025|10027].*smtpd/a \    -o receive_override_options=no_milters" /etc/postfix/master.cf
     
         sed -i --follow-symlinks 's/^\(^Mode\).*/\1  sv/' /etc/opendkim.conf
 
@@ -868,33 +872,60 @@ EOF
     fi
 }
 
-configure_larry_skin()
+kolab_rcpt_policy_off()
 {
-    if [ "$(grep -c "larry" /etc/roundcubemail/config.inc.php)" == "0" ] ; then
-        echo "info:  start configuring Larry skin as default"
-
-        sed -i "s/\$config\['skin'\] = '.*';/\$config\['skin'\] = 'larry';/g" /etc/roundcubemail/config.inc.php
-
-        echo "info:  finished configuring Larry skin as default"
+    echo "info:  start disabling recipient policy"
+    if [ "$(grep -c "daemon_rcpt_policy" /etc/kolab/kolab.conf)" == "0" ] ; then
+        sed -i -e '/daemon_rcpt_policy/c\daemon_rcpt_policy = False' /etc/kolab/kolab.conf
     else
-        echo "warn:  Larry skin already configured as default, skipping..."
+        sed -i -e '/\[kolab\]/a\daemon_rcpt_policy = False' /etc/kolab/kolab.conf
     fi
+    echo "info:  finished disabling recipient policy"
 }
 
-configure_zipdownload()
+kolab_default_locale()
+{
+    echo "info:  start configuring kolab default locale"
+    sed -i -e '/default_locale/c\default_locale = '$extras_kolab_default_locale /etc/kolab/kolab.conf
+    echo "info:  finished configuring kolab default locale"
+}
+
+configure_php()
+{
+    echo "info:  start configuring php.ini"
+    sed -i -e --follow-symlinks '/memory_limit/c\memory_limit = '$extras_php_memory_limit /etc/php.ini
+    sed -i -e --follow-symlinks '/upload_max_filesize/c\upload_max_filesize = '$extras_php_upload_max_filesize /etc/php.ini
+    sed -i -e --follow-symlinks '/post_max_size/c\post_max_size = '$extras_php_post_max_size /etc/php.ini
+    echo "info:  finished configuring php.ini"
+}
+
+roundcube_larry_skin()
+{
+    echo "info:  start configuring Larry skin as default"
+    sed -i "s/\$config\['skin'\] = '.*';/\$config\['skin'\] = 'larry';/g" /etc/roundcubemail/config.inc.php
+    echo "info:  finished configuring Larry skin as default"
+}
+
+roundcube_zipdownload()
 {
     if [ "$(grep -c "zipdownload" /etc/roundcubemail/config.inc.php)" == "0" ] ; then
         echo "info:  start configuring zipdownload plugin"
-
         sed -i "/'contextmenu',/a \            'zipdownload'," /etc/roundcubemail/config.inc.php
-
         echo "info:  finished configuring zipdownload plugin"
     else
         echo "warn:  zipdownload plugin already configured, skipping..."
     fi
 }
 
-configure_milter()
+roundcube_trash_folder()
+{
+    echo "info:  start configuring trash folder istead flaging"
+    sed -i "s/\$config\['skip_deleted'\] = '.*';/\$config\['skip_deleted'\] = 'false';/g" /etc/roundcubemail/config.inc.php
+    sed -i "s/\$config\['flag_for_deletion'\] = '.*';/\$config\['flag_for_deletion'\] = 'false';/g" /etc/roundcubemail/config.inc.php
+    echo "info:  finished configuring trash folder istead flaging"
+}
+
+postfix_milter()
 {
     if [ "$(grep "smtpd_milters" /etc/postfix/main.cf | grep -cv localhost)" != "0" ] ; then
         echo "warn:  another milter already configured, but that's nothing wrong, run again..."
@@ -962,9 +993,13 @@ setup_wizard ()
     if [ $main_configure_fail2ban = "true" ] ; then configure_fail2ban ; fi
     if [ $main_configure_dkim = "true" ] ; then configure_dkim ; fi
     # Extras
-    if [ $extras_configure_larry_skin = "true" ] ; then configure_larry_skin ; fi
-    if [ $extras_configure_zipdownload = "true" ] ; then configure_zipdownload ; fi
-    if [ $extras_configure_another_milter = "true" ] ; then configure_milter ; fi
+    if [ $extras_kolab_rcpt_policy_off = "true" ] ; then kolab_rcpt_policy_off ; fi
+    if [ $extras_kolab_default_locale != "" ] ; then kolab_default_locale ; fi
+    if [ $extras_php_memory_limit != "" ] && [ $extras_php_upload_max_filesize != "" ] && [ $extras_php_post_max_size != "" ] ; then configure_php ; fi
+    if [ $extras_roundcube_larry_skin = "true" ] ; then roundcube_larry_skin ; fi
+    if [ $extras_roundcube_zipdownload = "true" ] ; then roundcube_zipdownload ; fi
+    if [ $extras_roundcube_trash_folder = "true" ] ; then roundcube_trash_folder ; fi
+    if [ $extras_postfix_another_milter = "true" ] ; then postfix_milter ; fi
     # Print parameters
     if [ $main_configure_kolab = "true" ] ; then print_passwords ; fi
     if [ $main_configure_dkim = "true" ] ; then print_dkim_keys ; fi
@@ -1006,9 +1041,13 @@ elif [ "$1" == "ssl" ] ; then configure_ssl
 elif [ "$1" == "fail2ban" ] ; then configure_fail2ban
 elif [ "$1" == "dkim" ] ; then configure_dkim ; print_dkim_keys
 # Extras
-elif [ "$1" == "larry" ] ; then configure_larry_skin
-elif [ "$1" == "zipdownload" ] ; then configure_zipdownload
-elif [ "$1" == "milter" ] ; then configure_milter
+elif [ "$1" == "rcpt_off" ] ; then kolab_rcpt_policy_off
+elif [ "$1" == "locale" ] ; then kolab_default_locale
+elif [ "$1" == "php" ] ; then configure_php
+elif [ "$1" == "larry" ] ; then roundcube_larry_skin
+elif [ "$1" == "zipdownload" ] ; then roundcube_zipdownload
+elif [ "$1" == "trash" ] ; then roundcube_trash_folder
+elif [ "$1" == "milter" ] ; then postfix_milter
 # Print parameters
 elif [ "$1" == "kolab" ] ; then print_passwords
 elif [ "$1" == "dkim" ] ; then print_dkim_keys
