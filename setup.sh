@@ -1029,7 +1029,7 @@ run ()
      fi
 }
 
-get_config /data/etc/settings.ini
+if [ -f /data/etc/settings.ini ]; then get_config /data/etc/settings.ini; fi
 # Run
 if [ "$1" == "run" ] ; then run
 # Main
