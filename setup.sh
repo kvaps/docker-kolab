@@ -1030,26 +1030,24 @@ run ()
 }
 
 if [ -f /data/etc/settings.ini ]; then get_config /data/etc/settings.ini; fi
-# Run
-if [ "$1" == "run" ] ; then run
-# Main
-elif [ "$1" == "kolab" ] ; then configure_kolab ; print_passwords
-elif [ "$1" == "nginx" ] ; then configure_nginx
-elif [ "$1" == "nginx_cache" ] ; then configure_nginx_cache
-elif [ "$1" == "amavis" ] ; then configure_amavis
-elif [ "$1" == "ssl" ] ; then configure_ssl
-elif [ "$1" == "fail2ban" ] ; then configure_fail2ban
-elif [ "$1" == "dkim" ] ; then configure_dkim ; print_dkim_keys
-# Extras
-elif [ "$1" == "rcpt_off" ] ; then kolab_rcpt_policy_off
-elif [ "$1" == "locale" ] ; then kolab_default_locale
-elif [ "$1" == "php" ] ; then configure_php
-elif [ "$1" == "larry" ] ; then roundcube_larry_skin
-elif [ "$1" == "zipdownload" ] ; then roundcube_zipdownload
-elif [ "$1" == "trash" ] ; then roundcube_trash_folder
-elif [ "$1" == "milter" ] ; then postfix_milter
-# Print parameters
-elif [ "$1" == "kolab" ] ; then print_passwords
-elif [ "$1" == "dkim" ] ; then print_dkim_keys
-elif [ "$1" == "link" ] ; then link_dirs
-else usage ; fi
+
+case "$1" in
+    "run")          run ;;
+    "kolab")        configure_kolab ; print_passwords ;;
+    "nginx")        configure_nginx ;;
+    "nginx_cache")  configure_nginx_cache ;;
+    "amavis")       configure_amavis ;;
+    "ssl")          configure_ssl ;;
+    "fail2ban")     configure_fail2ban ;;
+    "dkim")         configure_dkim ; print_dkim_keys ;;
+    "rcpt_off")     kolab_rcpt_policy_off ;;
+    "locale")       kolab_default_locale ;;
+    "php")          configure_php ;;
+    "larry")        roundcube_larry_skin ;;
+    "zipdownload")  roundcube_zipdownload ;;
+    "trash")        roundcube_trash_folder ;;
+    "milter")       postfix_milter ;;
+    "link")         link_dirs ;;
+    *)              usage ;;
+esac
+
