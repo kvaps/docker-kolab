@@ -1,17 +1,18 @@
 FROM centos:centos6
 MAINTAINER kvaps <kvapss@gmail.com>
+ENV REFRESHED_AT 2015-09-02
 
 RUN mv /etc/localtime /etc/localtime.old; ln -s /usr/share/zoneinfo/Europe/Moscow /etc/localtime
-RUN localedef -v -c -i en_US -f UTF-8 en_US.UTF-8; $(exit 0)
-#RUN localedef -v -c -i ru_RU -f UTF-8 ru_RU.UTF-8; $(exit 0)
+RUN localedef -v -c -i en_US -f UTF-8 en_US.UTF-8; exit 0
+#RUN localedef -v -c -i ru_RU -f UTF-8 ru_RU.UTF-8; exit 0
 ENV LANG en_US.UTF-8
 
-RUN yum -y update
-RUN yum -y install wget epel-release 
-WORKDIR /etc/yum.repos.d
-RUN wget http://obs.kolabsys.com/repositories/Kolab:/3.4/CentOS_6/Kolab:3.4.repo
-RUN wget http://obs.kolabsys.com/repositories/Kolab:/3.4:/Updates/CentOS_6/Kolab:3.4:Updates.repo
 
+RUN yum -y update
+RUN yum -y install epel-release 
+RUN yum -y install http://nginx.org/packages/centos/6/noarch/RPMS/nginx-release-centos-6-0.el6.ngx.noarch.rpm
+RUN curl -o /etc/yum.repos.d/Kolab:3.4.repo http://obs.kolabsys.com/repositories/Kolab:/3.4/CentOS_6/Kolab:3.4.repo
+RUN curl -o /etc/yum.repos.d/Kolab:3.4:Updates.repo http://obs.kolabsys.com/repositories/Kolab:/3.4:/Updates/CentOS_6/Kolab:3.4:Updates.repo
 
 RUN gpg --keyserver pgp.mit.edu --recv-key 0x446D5A45
 RUN gpg --export --armor devel@lists.kolab.org > devel.asc
@@ -31,7 +32,6 @@ RUN yum -y install supervisor expect mod_ssl nginx php-fpm opendkim fail2ban git
 RUN pecl install zip
 
 #Install zipdownload
-
 RUN git clone https://github.com/roundcube/roundcubemail/ --depth 1 /tmp/roundcube
 RUN mv /tmp/roundcube/plugins/zipdownload/ /usr/share/roundcubemail/plugins/
 RUN rm -rf /tmp/roundcube/
@@ -45,16 +45,17 @@ RUN echo password | saslpasswd2 sasldb2 && chown cyrus:saslauth /etc/sasldb2
 # fix: http://trac.roundcube.net/ticket/1490424
 RUN sed -i "840s/\$this/\$me/g"  /usr/share/roundcubemail/program/lib/Roundcube/rcube_ldap.php 
 
-# MySQL LDAP IMAP
-VOLUME ["/data"]
-
-WORKDIR /root
-
 # Add config and setup script, run it
 ADD wrappers/* /bin/
 ADD settings.ini /etc/settings.ini
 ADD setup.sh /bin/setup.sh
-ENTRYPOINT ["/bin/setup.sh", "run"]
- 
+
+WORKDIR /root
+
+
+VOLUME ["/data"]
+
 # Ports: HTTP HTTPS SMTP SMTPS POP3 POP3S IMAP IMAPS SIEVE
 EXPOSE  80 443 25 587 143 993 110 995 4190
+
+ENTRYPOINT ["/bin/setup.sh", "run"]
