@@ -16,7 +16,7 @@ usage ()
      echo "    dkim                  - Configure OpenDKIM"
      echo "    rcpt_off              - Disable the Recipient Policy"
      echo "    locale                - Configure default locale from config"
-     echo "    php                   - Configure php.ini from config"
+     echo "    size                  - Configure size from config"
      echo "    larry                 - Set Larry skin as default"
      echo "    zipdownload           - Configure zipdownload plugin for roundcube"
      echo "    trash                 - Configure trash folder istead flag for deletion"
@@ -890,13 +890,16 @@ kolab_default_locale()
     echo "info:  finished configuring kolab default locale"
 }
 
-configure_php()
+configure_size()
 {
-    echo "info:  start configuring php.ini"
+    echo "info:  start configuring sizes"
     sed -i -e --follow-symlinks '/memory_limit/c\memory_limit = '$extras_php_memory_limit /etc/php.ini
-    sed -i -e --follow-symlinks '/upload_max_filesize/c\upload_max_filesize = '$extras_php_upload_max_filesize /etc/php.ini
-    sed -i -e --follow-symlinks '/post_max_size/c\post_max_size = '$extras_php_post_max_size /etc/php.ini
-    echo "info:  finished configuring php.ini"
+    sed -i -e --follow-symlinks '/upload_max_filesize/c\upload_max_filesize = '$extras_size_upload_max_filesize /etc/php.ini
+    sed -i -e --follow-symlinks '/post_max_size/c\post_max_size = '$extras_size_post_max_size /etc/php.ini
+    postconf -e message_size_limit=$extras_size_post_max_size
+    #sed -i -e '/php_value post_max_size/c\php_value post_max_size             '$extras_size_post_max_size /usr/share/chwala/public_html/.htaccess           
+    #sed -i -e '/php_value upload_max_filesize/c\php_value upload_max_filesize             '$extras_size_upload_max_filesize /usr/share/chwala/public_html/.htaccess
+    echo "info:  finished configuring sizes"
 }
 
 roundcube_larry_skin()
@@ -995,7 +998,7 @@ setup_wizard ()
     # Extras
     if [ $extras_kolab_rcpt_policy_off = "true" ] ; then kolab_rcpt_policy_off ; fi
     if [ $extras_kolab_default_locale != "" ] ; then kolab_default_locale ; fi
-    if [ $extras_php_memory_limit != "" ] && [ $extras_php_upload_max_filesize != "" ] && [ $extras_php_post_max_size != "" ] ; then configure_php ; fi
+    if [ $extras_php_memory_limit != "" ] && [ $extras_size_upload_max_filesize != "" ] && [ $extras_size_post_max_size != "" ] ; then configure_size ; fi
     if [ $extras_roundcube_larry_skin = "true" ] ; then roundcube_larry_skin ; fi
     if [ $extras_roundcube_zipdownload = "true" ] ; then roundcube_zipdownload ; fi
     if [ $extras_roundcube_trash_folder = "true" ] ; then roundcube_trash_folder ; fi
@@ -1042,7 +1045,7 @@ case "$1" in
     "dkim")         configure_dkim ; print_dkim_keys ;;
     "rcpt_off")     kolab_rcpt_policy_off ;;
     "locale")       kolab_default_locale ;;
-    "php")          configure_php ;;
+    "size")         configure_size ;;
     "larry")        roundcube_larry_skin ;;
     "zipdownload")  roundcube_zipdownload ;;
     "trash")        roundcube_trash_folder ;;
