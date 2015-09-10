@@ -893,9 +893,9 @@ kolab_default_locale()
 configure_size()
 {
     echo "info:  start configuring sizes"
-    sed -i -e --follow-symlinks '/memory_limit/c\memory_limit = '$extras_php_memory_limit /etc/php.ini
-    sed -i -e --follow-symlinks '/upload_max_filesize/c\upload_max_filesize = '$extras_size_upload_max_filesize /etc/php.ini
-    sed -i -e --follow-symlinks '/post_max_size/c\post_max_size = '$extras_size_post_max_size /etc/php.ini
+    sed -i --follow-symlinks -e '/memory_limit/c\memory_limit = '$extras_php_memory_limit /etc/php.ini
+    sed -i --follow-symlinks -e '/upload_max_filesize/c\upload_max_filesize = '$extras_size_upload_max_filesize /etc/php.ini
+    sed -i --follow-symlinks -e '/post_max_size/c\post_max_size = '$extras_size_post_max_size /etc/php.ini
     postconf -e message_size_limit=$extras_size_post_max_size
     #sed -i -e '/php_value post_max_size/c\php_value post_max_size             '$extras_size_post_max_size /usr/share/chwala/public_html/.htaccess           
     #sed -i -e '/php_value upload_max_filesize/c\php_value upload_max_filesize             '$extras_size_upload_max_filesize /usr/share/chwala/public_html/.htaccess
