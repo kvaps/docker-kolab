@@ -876,9 +876,9 @@ kolab_rcpt_policy_off()
 {
     echo "info:  start disabling recipient policy"
     if [ "$(grep -c "daemon_rcpt_policy" /etc/kolab/kolab.conf)" == "0" ] ; then
-        sed -i -e '/daemon_rcpt_policy/c\daemon_rcpt_policy = False' /etc/kolab/kolab.conf
-    else
         sed -i -e '/\[kolab\]/a\daemon_rcpt_policy = False' /etc/kolab/kolab.conf
+    else
+        sed -i -e '/daemon_rcpt_policy/c\daemon_rcpt_policy = False' /etc/kolab/kolab.conf
     fi
     echo "info:  finished disabling recipient policy"
 }
