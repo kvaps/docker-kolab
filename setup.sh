@@ -899,6 +899,7 @@ configure_size()
     postconf -e message_size_limit=$extras_size_post_max_size
     #sed -i -e '/php_value post_max_size/c\php_value post_max_size             '$extras_size_post_max_size /usr/share/chwala/public_html/.htaccess           
     #sed -i -e '/php_value upload_max_filesize/c\php_value upload_max_filesize             '$extras_size_upload_max_filesize /usr/share/chwala/public_html/.htaccess
+    sed -i -e '/client_max_body_size/c\        client_max_body_size '$extras_nginx_client_max_body_size';' /etc/nginx/conf.d/default.conf 
     echo "info:  finished configuring sizes"
 }
 
