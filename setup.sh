@@ -551,7 +551,6 @@ configure_nginx_cache()
 
         #Adding open file cache to nginx
         sed -i '/include \/etc\/nginx\/conf\.d\/\*.conf;/{
-        N
         a \    open_file_cache max=16384 inactive=5m;
         a \    open_file_cache_valid 90s; 
         a \    open_file_cache_min_uses 2;
@@ -559,7 +558,6 @@ configure_nginx_cache()
         }' /etc/nginx/nginx.conf
 
         sed -i '/include \/etc\/nginx\/conf\.d\/\*.conf;/{
-        N
         a \    fastcgi_cache_key "$scheme$request_method$host$request_uri";
         a \    fastcgi_cache_use_stale error timeout invalid_header http_500;
         a \    fastcgi_cache_valid 200 302 304 10m;
