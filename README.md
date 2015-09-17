@@ -12,6 +12,7 @@ docker run \
     --name kolab \
     -h mail.example.org \
     -v /opt/kolab:/data:rw \
+    --env TZ=Europe/Moscow
     -p 80:80 \
     -p 443:443 \
     -p 25:25 \
@@ -87,14 +88,13 @@ Requires=docker.service
 EnvironmentFile=/etc/kolab-docker/%i
 Restart=always
 
-ExecStartPre=/bin/bash -c 'docker rm -f ${DOCKER_NAME}'
 ExecStart=/bin/bash -c 'docker run --name ${DOCKER_NAME} -h ${DOCKER_HOSTNAME} -v ${DOCKER_VOLUME}:/data:rw ${DOCKER_OPTIONS} kvaps/kolab'
 ExecStartPost=/bin/bash -c ' \
         pipework ${EXT_INTERFACE} -i eth1 ${DOCKER_NAME} ${EXT_ADDRESS}@${EXT_GATEWAY}; \
         docker exec ${DOCKER_NAME} bash -c "${INT_ROUTE}"; \
         docker exec ${DOCKER_NAME} bash -c "if ! [ \"${DNS_SERVER}\" = \"\" ] ; then echo nameserver ${DNS_SERVER} > /etc/resolv.conf ; fi" '
 
-ExecStop=/bin/bash -c 'docker stop -t 2 ${DOCKER_NAME}'
+ExecStop=/bin/bash -c 'docker stop -t 2 ${DOCKER_NAME} ; docker rm -f ${DOCKER_NAME}'
 
 [Install]
 WantedBy=multi-user.target
@@ -108,7 +108,7 @@ vi /etc/kolab-docker/example.org
 DOCKER_HOSTNAME=mail.example.org
 DOCKER_NAME="kolab-$(echo $DOCKER_HOSTNAME | cut -d. -f 2-)"
 DOCKER_VOLUME="/opt/kolab-$(echo $DOCKER_HOSTNAME | cut -d. -f 2-)"
-DOCKER_OPTIONS='--cap-add=NET_ADMIN --link rmilter:rmilter -p 25:25 -p 389:389'
+DOCKER_OPTIONS='--env TZ=Europe/Moscow --cap-add=NET_ADMIN --link rmilter:rmilter -p 25:25 -p 389:389'
  
 EXT_INTERFACE=eth2
 #EXT_ADDRESS='dhclient D2:84:9D:CA:F3:BC'

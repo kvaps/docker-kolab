@@ -47,6 +47,13 @@ get_config()
     chmod 600 /etc/settings.ini
 }
 
+set_timezone()
+{
+    if [ -f /usr/share/zoneinfo/$TZ ]; then 
+        rm -f /etc/localtime && ln -s /usr/share/zoneinfo/$TZ /etc/localtime
+    fi
+}
+
 dir=(
     /etc/settings.ini
     /etc/dirsrv
@@ -1034,6 +1041,8 @@ run ()
      
      fi
 }
+
+set_timezone
 
 if [ -f /data/etc/settings.ini ]; then get_config /data/etc/settings.ini; fi
 
