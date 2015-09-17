@@ -591,6 +591,7 @@ configure_amavis()
         sed -i 's/^\($final_spam_destiny.*= \).*/\1D_PASS;/' /etc/amavisd/amavisd.conf
 
         # Create default sieve script
+        mkdir -p /var/lib/imap/sieve/global/
         cat > /var/lib/imap/sieve/global/default.script << EOF
 require "fileinto";
 if header :contains "X-Spam-Flag" "YES"
