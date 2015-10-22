@@ -244,7 +244,7 @@ exit    0
 EOF
 
         # Redirect to /webmail/ in apache
-        sed -i -e 's/<Directory \/>/<Directory \/>\n    RedirectMatch \^\/$ \/webmail\//g' /etc/httpd/conf/httpd.conf
+        sed -i 's/^\(DocumentRoot \).*/\1"\/usr\/share\/roundcubemail\/public_html"/' /etc/httpd/conf/httpd.conf
 
         # SSL by default in apache
         cat >> /etc/httpd/conf/httpd.conf << EOF
