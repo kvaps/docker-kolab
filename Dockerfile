@@ -43,7 +43,7 @@ RUN sed -i "840s/\$this/\$me/g"  /usr/share/roundcubemail/program/lib/Roundcube/
 # Add config and setup script, run it
 ADD wrappers/* /bin/
 ADD settings.ini /etc/settings.ini
-ADD setup.sh /bin/setup.sh
+ADD start.sh /bin/start.sh
 
 WORKDIR /root
 
