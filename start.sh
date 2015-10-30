@@ -119,11 +119,7 @@ move_dirs()
 {
     echo "info:  start moving lib and log folders to /data volume"
 
-    mkdir -p /data/etc
-    mkdir -p /data/var/lib
-    mkdir -p /data/var/spool
-    mkdir -p /data/var/log
-
+    for i in "${dir[@]}"; do mkdir -p /data$(dirname $i) ; done
     for i in "${dir[@]}"; do mv $i /data$i; done
 
     echo "info:  finished moving lib and log folders to /data volume"
@@ -137,8 +133,7 @@ link_dirs()
  
     #Need for dirsrv
     mkdir /var/lock/dirsrv/slapd-$(hostname -s)/
-    chown dirsrv:dirsrv /var/lock/dirsrv/slapd-$(hostname -s)/
-    chown dirsrv:dirsrv /var/run/dirsrv
+    chown dirsrv: /var/run/dirsrv /var/lock/dirsrv/slapd-$(hostname -s)/
 
     echo "info:  finished linking default lib and log folders to /data volume"
 }
