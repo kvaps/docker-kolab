@@ -210,15 +210,6 @@ EOF
         # Redirect to /webmail/ in apache
         sed -i 's/^\(DocumentRoot \).*/\1"\/usr\/share\/roundcubemail\/public_html"/' /etc/httpd/conf/httpd.conf
 
-        # SSL by default in apache
-        cat >> /etc/httpd/conf/httpd.conf << EOF
-
-<VirtualHost _default_:80>
-    RewriteEngine On
-    RewriteRule ^(.*)$ https://%{HTTP_HOST}\$1 [R=301,L]
-</VirtualHost>
-EOF
-
         #fix: Certificates changed by default from localhost.pem to key and crt
         postconf -e smtpd_tls_key_file=/etc/pki/tls/private/localhost.key
         postconf -e smtpd_tls_cert_file=/etc/pki/tls/certs/localhost.crt
@@ -317,6 +308,16 @@ configure_ssl()
         echo "warn:  SSL already configured, but that's nothing wrong, run again..."
     fi
     echo "info:  start configuring SSL"
+
+    # SSL by default in apache
+    cat >> /etc/httpd/conf/httpd.conf << EOF
+
+<VirtualHost _default_:80>
+    RewriteEngine On
+    RewriteRule ^(.*)$ https://%{HTTP_HOST}\$1 [R=301,L]
+</VirtualHost>
+EOF
+
     cat > /tmp/update_ssl_key_message.txt << EOF
 
 
