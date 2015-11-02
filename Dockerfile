@@ -42,7 +42,6 @@ RUN sed -i "840s/\$this/\$me/g"  /usr/share/roundcubemail/program/lib/Roundcube/
 
 # Add config and setup script, run it
 ADD wrappers/* /bin/
-ADD settings.ini /etc/settings.ini
 ADD start.sh /bin/start.sh
 ADD configs/supervisord.conf /etc/supervisord.conf
 ADD configs/nginx/conf.d/default.conf /etc/nginx/conf.d/default.conf

@@ -62,28 +62,6 @@ load_defaults()
     chk_var  ROUNDCUBE_TRASH       "trash"
 }
 
-get_config()
-{
-    while IFS="=" read var val
-    do
-        if [[ $var == \[*] ]]
-        then
-            section=`echo "$var" | tr -d "[] "`
-        elif [[ $val ]]
-        then
-            if [[ $val == "random" ]]
-            then
-		random_pwd="$(cat /dev/urandom | env LC_CTYPE=C tr -dc a-zA-Z0-9 | head -c 16; echo)"	# gen pass
-                eval $section"_"$var=$random_pwd
-		sed -i --follow-symlinks "/\(^"$var"=\).*/ s//\1"$random_pwd"/ " $1	#save generated pass to settings.ini
-            else
-                eval $section"_"$var="$val"
-            fi
-        fi
-    done < $1
-    chmod 600 /etc/settings.ini
-}
-
 set_timezone()
 {
     if [ -f /usr/share/zoneinfo/$TZ ]; then 
@@ -634,8 +612,6 @@ print_dkim_keys()
 
 setup_wizard ()
 {
-    vi /etc/settings.ini
-    get_config /etc/settings.ini
     # Main
     if [ $main_configure_kolab = "true" ] ; then configure_kolab ; fi
     if [ $main_configure_nginx = "true" ] ; then configure_nginx ; fi
@@ -682,8 +658,6 @@ run ()
 }
 
 set_timezone
-
-if [ -f /data/etc/settings.ini ]; then get_config /data/etc/settings.ini; fi
 
 case "$1" in
     "run")          run ;;
