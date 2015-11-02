@@ -64,8 +64,8 @@ Below is the complete list of available options that can be used to customize yo
 
 By default passwords generates automatically and printing at the end of the installation script. You can specify the passwords you want to use.
 
-  - **389_ADMIN_PASS**: supply a password for the LDAP administrator user 'admin', used to login to the graphical console of 389 Directory server. Defaults to `random`.
-  - **389_MANAGER_PASS**: supply a password for the LDAP Directory Manager user, which is the administrator user you will be using to at least initially log in to the Web Admin, and that Kolab uses to perform administrative tasks. Defaults to `random`.
+  - **LDAP_ADMIN_PASS**: supply a password for the LDAP administrator user 'admin', used to login to the graphical console of 389 Directory server. Defaults to `random`.
+  - **LDAP_MANAGER_PASS**: supply a password for the LDAP Directory Manager user, which is the administrator user you will be using to at least initially log in to the Web Admin, and that Kolab uses to perform administrative tasks. Defaults to `random`.
   - **LDAP_CYRUS_PASS**: supply a Cyrus Administrator password. This password is used by Kolab to execute administrative tasks in Cyrus IMAP. You may also need the password yourself to troubleshoot Cyrus IMAP and/or perform other administrative tasks against Cyrus IMAP directly. Defaults to `random`.
   - **LDAP_KOLAB_PASS**: supply a Kolab Service account password. This account is used by various services such as Postfix, and Roundcube, as anonymous binds to the LDAP server will not be allowed. Defaults to `random`.
   - **MYSQL_ROOT_PASS**: supply the root password for MySQL, so we can set up user accounts for other components that use MySQL. Defaults to `random`.

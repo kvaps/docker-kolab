@@ -25,6 +25,43 @@ usage ()
      exit
 }
 
+random_pwd()
+{
+    cat /dev/urandom | env LC_CTYPE=C tr -dc a-zA-Z0-9 | head -c 16; echo;
+}
+
+chk_var () {
+   var=$(sh -c "echo $(echo \$$1)")
+   [ -z "$var" ] && export "$1"="$2"
+}
+
+load_defaults()
+{
+    chk_var  TZ                    "utc"
+    chk_var  WEBSERVER             "nginx"
+    chk_var  KOLAB_HTTPS           true
+    chk_var  NGINX_CACHE           false
+    chk_var  SPAM_SIEVE            true
+    chk_var  FAIL2BAN              true
+    chk_var  DKIM                  true
+    chk_var  LDAP_ADMIN_PASS       `random_pwd`
+    chk_var  LDAP_MANAGER_PASS     `random_pwd`
+    chk_var  LDAP_CYRUS_PASS       `random_pwd`
+    chk_var  LDAP_KOLAB_PASS       `random_pwd`
+    chk_var  MYSQL_ROOT_PASS       `random_pwd`
+    chk_var  MYSQL_KOLAB_PASS      `random_pwd`
+    chk_var  MYSQL_ROUNDCUBE_PASS  `random_pwd`
+    chk_var  KOLAB_RCPT_POLICY     "false"
+    chk_var  KOLAB_DEFAULT_LOCALE  "en_US"
+    chk_var  MAX_MEMORY_SIZE       "256M"
+    chk_var  MAX_FILE_SIZE         "30M"
+    chk_var  MAX_MAIL_SIZE         "30M"
+    chk_var  MAX_BODY_SIZE         "50M"
+    chk_var  ROUNDCUBE_SKIN        "chameleon"
+    chk_var  ROUNDCUBE_ZIPDOWNLOAD true
+    chk_var  ROUNDCUBE_TRASH       "trash"
+}
+
 get_config()
 {
     while IFS="=" read var val
