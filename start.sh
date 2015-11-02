@@ -8,7 +8,7 @@ usage ()
      echo "    run                   - Auto start all services or install wizard in case of initial setup"
      echo "    link                  - Create symlinks default folders to /data"
      echo "    kolab                 - Configure Kolab from config"
-     echo "    amavis                - Configure amavis"
+     echo "    spam                  - Configure spam sieve"
      echo "    nginx                 - Configure nginx"
      echo "    nginx_cache           - Configure nginx caching"
      echo "    ssl                   - Configure SSL using your certs"
@@ -70,7 +70,6 @@ set_timezone()
 }
 
 dir=(
-    /etc/settings.ini
     /etc/dirsrv
     /etc/fail2ban
     /etc/httpd
@@ -164,16 +163,16 @@ configure_kolab()
         rm -f /etc/httpd/run && ln -s /var/run /etc/httpd/run
 
         expect <<EOF
-spawn   setup-kolab --fqdn=$(hostname -f) --timezone=$kolab_Timezone_ID
+spawn   setup-kolab --fqdn=$(hostname -f) --timezone=$TZ
 set timeout 300
 expect  "Administrator password *:"
-send    "$kolab_Administrator_password\r"
+send    "$LDAP_ADMIN_PASS\r"
 expect  "Confirm Administrator password:"
-send    "$kolab_Administrator_password\r"
+send    "$LDAP_ADMIN_PASS\r"
 expect  "Directory Manager password *:"
-send    "$kolab_Directory_Manager_password\r"
+send    "$LDAP_MANAGER_PASS\r"
 expect  "Confirm Directory Manager password:"
-send    "$kolab_Directory_Manager_password\r"
+send    "$LDAP_MANAGER_PASS\r"
 expect  "User *:"
 send    "dirsrv\r"
 expect  "Group *:"
@@ -183,27 +182,27 @@ send    "yes\r"
 expect  "The standard root dn we composed for you follows"
 send    "yes\r"
 expect  "Cyrus Administrator password *:"
-send    "$kolab_Cyrus_Administrator_password\r"
+send    "$LDAP_CYRUS_PASS\r"
 expect  "Confirm Cyrus Administrator password:"
-send    "$kolab_Cyrus_Administrator_password\r"
+send    "$LDAP_CYRUS_PASS\r"
 expect  "Kolab Service password *:"
-send    "$kolab_Kolab_Service_password\r"
+send    "$LDAP_KOLAB_PASS\r"
 expect  "Confirm Kolab Service password:"
-send    "$kolab_Kolab_Service_password\r"
+send    "$LDAP_KOLAB_PASS\r"
 expect  "What MySQL server are we setting up"
 send    "2\r"
 expect  "MySQL root password *:"
-send    "$kolab_MySQL_root_password\r"
+send    "$MYSQL_ROOT_PASS\r"
 expect  "Confirm MySQL root password:"
-send    "$kolab_MySQL_root_password\r"
+send    "$MYSQL_ROOT_PASS\r"
 expect  "MySQL kolab password *:"
-send    "$kolab_MySQL_kolab_password\r"
+send    "$MYSQL_KOLAB_PASS\r"
 expect  "Confirm MySQL kolab password:"
-send    "$kolab_MySQL_kolab_password\r"
+send    "$MYSQL_KOLAB_PASS\r"
 expect  "MySQL roundcube password *:"
-send    "$kolab_MySQL_roundcube_password\r"
+send    "$MYSQL_ROUNDCUBE_PASS\r"
 expect  "Confirm MySQL roundcube password:"
-send    "$kolab_MySQL_roundcube_password\r"
+send    "$MYSQL_ROUNDCUBE_PASS\r"
 expect  "Starting kolabd:"
 exit    0
 EOF
@@ -283,7 +282,7 @@ configure_nginx_cache()
     fi
 }
 
-configure_amavis()
+configure_spam_sieve()
 {
     if [[ $(grep -c \$final_spam_destiny.*D_PASS /etc/amavisd/amavisd.conf) == 0 ]] ; then
         echo "info:  start configuring amavis"
@@ -509,32 +508,32 @@ kolab_rcpt_policy_off()
 kolab_default_locale()
 {
     echo "info:  start configuring kolab default locale"
-    sed -i -e '/default_locale/c\default_locale = '$extras_kolab_default_locale /etc/kolab/kolab.conf
+    sed -i -e '/default_locale/c\default_locale = '$KOLAB_DEFAULT_LOCALE /etc/kolab/kolab.conf
     echo "info:  finished configuring kolab default locale"
 }
 
 configure_size()
 {
     echo "info:  start configuring sizes"
-    sed -i --follow-symlinks -e '/memory_limit/c\memory_limit = '$extras_php_memory_limit /etc/php.ini
-    sed -i --follow-symlinks -e '/upload_max_filesize/c\upload_max_filesize = '$extras_size_upload_max_filesize /etc/php.ini
-    sed -i --follow-symlinks -e '/post_max_size/c\post_max_size = '$extras_size_post_max_size /etc/php.ini
-    #sed -i -e '/php_value post_max_size/c\php_value post_max_size             '$extras_size_post_max_size /usr/share/chwala/public_html/.htaccess           
-    #sed -i -e '/php_value upload_max_filesize/c\php_value upload_max_filesize             '$extras_size_upload_max_filesize /usr/share/chwala/public_html/.htaccess
-    sed -i -e '/client_max_body_size/c\        client_max_body_size '$extras_nginx_client_max_body_size';' /etc/nginx/conf.d/default.conf 
+    sed -i --follow-symlinks -e '/memory_limit/c\memory_limit = '$MAX_MEMORY_SIZE /etc/php.ini
+    sed -i --follow-symlinks -e '/upload_max_filesize/c\upload_max_filesize = '$MAX_FILE_SIZE /etc/php.ini
+    sed -i --follow-symlinks -e '/post_max_size/c\post_max_size = '$MAX_MAIL_SIZE /etc/php.ini
+    #sed -i -e '/php_value post_max_size/c\php_value post_max_size             '$MAX_MAIL_SIZE /usr/share/chwala/public_html/.htaccess           
+    #sed -i -e '/php_value upload_max_filesize/c\php_value upload_max_filesize             '$MAX_FILE_SIZE /usr/share/chwala/public_html/.htaccess
+    sed -i -e '/client_max_body_size/c\        client_max_body_size '$MAX_BODY_SIZE';' /etc/nginx/conf.d/default.conf 
 
     # Convert megabytes to bytes for postfix
-    if [[ $extras_size_post_max_size == *"M" ]] ;  then extras_postfix_message_size_limit=$[($(echo $extras_size_post_max_size | sed 's/[^0-9]//g'))*1024*1024] ; fi
-    postconf -e message_size_limit=$extras_postfix_message_size_limit    
+    if [[ $MAX_MAIL_SIZE == *"M" ]] ;  then MAX_MAIL_SIZE=$[($(echo $MAX_MAIL_SIZE | sed 's/[^0-9]//g'))*1024*1024] ; fi
+    postconf -e message_size_limit=$MAX_MAIL_SIZE    
 
     echo "info:  finished configuring sizes"
 }
 
-roundcube_larry_skin()
+roundcube_skin()
 {
-    echo "info:  start configuring Larry skin as default"
-    sed -i "s/\$config\['skin'\] = '.*';/\$config\['skin'\] = 'larry';/g" /etc/roundcubemail/config.inc.php
-    echo "info:  finished configuring Larry skin as default"
+    echo "info:  start configuring roundcube skin"
+    sed -i "s/\$config\['skin'\] = '.*';/\$config\['$ROUNDCUBE_SKIN'\] = 'larry';/g" /etc/roundcubemail/config.inc.php
+    echo "info:  finished configuring roundcube skin"
 }
 
 roundcube_zipdownload()
@@ -570,9 +569,9 @@ postfix_milter()
         sed -i "/^127\.0\.0\.1\:10027.*smtpd/a \    -o milter_protocol=2" /etc/postfix/master.cf
     fi
 
-    postconf -e milter_protocol=$extras_another_milter_protocol
-    postconf -e smtpd_milters=$extras_another_milter_address
-    postconf -e non_smtpd_milters=$extras_another_milter_address
+    postconf -e milter_protocol=$EXT_MILTER_PROTO
+    postconf -e smtpd_milters=$EXT_MILTER_ADDR
+    postconf -e non_smtpd_milters=$EXT_MILTER_ADDR
     postconf -e content_filter=smtp-wallace:[127.0.0.1]:10026
     
     #Disable amavis
@@ -591,13 +590,32 @@ postfix_milter()
 
 print_passwords()
 {
-    echo "======================================================="
-    echo "Please save your passwords:                            "
-    echo "======================================================="
-    cat /etc/settings.ini | grep password
-    echo
-    echo "            (You can also see it in /etc/settings.ini)"
-    echo "_______________________________________________________"
+    cat << EOF
+=======================================================
+Please save your passwords:                            
+=======================================================
+
+Directory Manager
+login:          cn=Directory Manager
+pass:           $LDAP_MANAGER_PASS
+
+389 Admin
+login:          admin
+pass:           $LDAP_ADMIN_PASS
+
+Service accounts
+login:          pass:
+kolab-service   $LDAP_KOLAB_PASS
+cyrus-admin     $LDAP_CYRUS_PASS
+
+MySQL accounts
+login:          pass:
+root            $MYSQL_ROOT_PASS
+kolab           $MYSQL_KOLAB_PASS
+roundcube       $MYSQL_ROUNDCUBE_PASS
+
+_______________________________________________________
+EOF
 }
 
 print_dkim_keys()
@@ -613,24 +631,23 @@ print_dkim_keys()
 setup_wizard ()
 {
     # Main
-    if [ $main_configure_kolab = "true" ] ; then configure_kolab ; fi
-    if [ $main_configure_nginx = "true" ] ; then configure_nginx ; fi
-    if [ $main_configure_nginx_cache = "true" ] ; then configure_nginx_cache ; fi
-    if [ $main_configure_amavis = "true" ] ; then configure_amavis ; fi
-    if [ $main_configure_ssl = "true" ] ; then configure_ssl ; fi
-    if [ $main_configure_fail2ban = "true" ] ; then configure_fail2ban ; fi
-    if [ $main_configure_dkim = "true" ] ; then configure_dkim ; fi
-    # Extras
-    if [ $extras_kolab_rcpt_policy_off = "true" ] ; then kolab_rcpt_policy_off ; fi
-    if [ $extras_kolab_default_locale != "" ] ; then kolab_default_locale ; fi
-    if [ $extras_php_memory_limit != "" ] && [ $extras_size_upload_max_filesize != "" ] && [ $extras_size_post_max_size != "" ] ; then configure_size ; fi
-    if [ $extras_roundcube_larry_skin = "true" ] ; then roundcube_larry_skin ; fi
-    if [ $extras_roundcube_zipdownload = "true" ] ; then roundcube_zipdownload ; fi
-    if [ $extras_roundcube_trash_folder = "true" ] ; then roundcube_trash_folder ; fi
-    if [ $extras_postfix_another_milter = "true" ] ; then postfix_milter ; fi
+                                           configure_kolab
+    [ $WEBSERVER = "nginx" ]            && configure_nginx
+    [ $NGINX_CACHE = true ]             && configure_nginx_cache
+    [ $SPAM_SIEVE = true ]              && configure_spam_sieve
+    [ $KOLAB_HTTPS = true ]             && configure_ssl
+    [ $FAIL2BAN = true ]                && configure_fail2ban
+    [ $DKIM = true ]                    && configure_dkim
+    [ $KOLAB_RCPT_POLICY = false ]      && kolab_rcpt_policy_off
+    [ ! -z "$KOLAB_DEFAULT_LOCALE" ]    && kolab_default_locale
+                                           configure_size 
+    [ ! -z "$ROUNDCUBE_SKIN" ]          && roundcube_skin
+    [ $ROUNDCUBE_ZIPDOWNLOAD = true ]   && then roundcube_zipdownload
+    [ $ROUNDCUBE_TRASH = true ]         && then roundcube_trash_folder
+    [ $EXT_MILTER_ADDR = true ]         && then postfix_milter
     # Print parameters
-    if [ $main_configure_kolab = "true" ] ; then print_passwords ; fi
-    if [ $main_configure_dkim = "true" ] ; then print_dkim_keys ; fi
+                                           print_passwords
+    [ $DKIM = true ]                    && print_dkim_keys
 }
 
 run ()
@@ -645,14 +662,10 @@ run ()
      
      else
      
-          while true; do
-             read -p "warn:  Kolab data not detected on /data volume, this is first installation(yes/no)? " yn
-             case $yn in
-                 [Yy]* ) move_dirs; link_dirs; setup_wizard; break;;
-                 [Nn]* ) echo "info:  Installation canceled"; exit;;
-                 * ) echo "Please answer yes or no.";;
-             esac
-         done
+         echo "info:  Kolab data not detected on /data volume, run setup..."
+         move_dirs
+         link_dirs
+         setup_wizard
      
      fi
 }
@@ -664,7 +677,7 @@ case "$1" in
     "kolab")        configure_kolab ; print_passwords ;;
     "nginx")        configure_nginx ;;
     "nginx_cache")  configure_nginx_cache ;;
-    "amavis")       configure_amavis ;;
+    "spam")         configure_spam_sieve ;;
     "ssl")          configure_ssl ;;
     "fail2ban")     configure_fail2ban ;;
     "dkim")         configure_dkim ; print_dkim_keys ;;
