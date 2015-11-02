@@ -44,6 +44,12 @@ RUN sed -i "840s/\$this/\$me/g"  /usr/share/roundcubemail/program/lib/Roundcube/
 ADD wrappers/* /bin/
 ADD settings.ini /etc/settings.ini
 ADD start.sh /bin/start.sh
+ADD configs/supervisord.conf /etc/supervisord.conf
+ADD configs/nginx/conf.d/default.conf /etc/nginx/conf.d/default.conf
+RUN rm -f /etc/php-fpm.d/www.conf
+ADD configs/php-fpm.d/* /etc/php-fpm.d/
+ADD configs/fail2ban/jail.conf /etc/fail2ban/jail.conf
+ADD configs/fail2ban/filter.d/* /etc/fail2ban/filter.d/
 
 WORKDIR /root
 
