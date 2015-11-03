@@ -42,7 +42,7 @@ for folder in ${user_sieve_folders[@]} ; do
 
 done
 
-    sleep 15m 
+    sleep $SPAM_SIEVE_TIMEOUT 
     set_spam_sieve
 }
 set_spam_sieve
