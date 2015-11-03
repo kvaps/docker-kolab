@@ -407,7 +407,7 @@ EOF
 
 configure_fail2ban()
 {
-    if [ "$(grep -c "kolab" /etc/fail2ban/jail.conf)" == "0" ] ; then
+    if [ "$(grep -c "^[^;]*fail2ban" /etc/supervisord.conf)" == "0" ] ; then
         echo "info:  start configuring Fail2ban"
 
         # Uncoment fail2ban
@@ -458,13 +458,16 @@ EOF
 
 kolab_rcpt_policy_off()
 {
-    echo "info:  start disabling recipient policy"
-    if [ "$(grep -c "daemon_rcpt_policy" /etc/kolab/kolab.conf)" == "0" ] ; then
-        sed -i -e '/\[kolab\]/a\daemon_rcpt_policy = False' /etc/kolab/kolab.conf
-    else
-        sed -i -e '/daemon_rcpt_policy/c\daemon_rcpt_policy = False' /etc/kolab/kolab.conf
+    if [ "$(grep -c "daemon_rcpt_policy = False" /etc/kolab/kolab.conf)" == "0" ] ; then
+
+        echo "info:  start disabling recipient policy"
+        if [ "$(grep -c "daemon_rcpt_policy" /etc/kolab/kolab.conf)" == "0" ] ; then
+            sed -i -e '/\[kolab\]/a\daemon_rcpt_policy = False' /etc/kolab/kolab.conf
+        else
+            sed -i -e '/daemon_rcpt_policy/c\daemon_rcpt_policy = False' /etc/kolab/kolab.conf
+        fi
+        echo "info:  finished disabling recipient policy"
     fi
-    echo "info:  finished disabling recipient policy"
 }
 
 kolab_default_locale()
@@ -487,7 +490,6 @@ configure_size()
     # Convert megabytes to bytes for postfix
     if [[ $MAX_MAIL_SIZE == *"M" ]] ;  then MAX_MAIL_SIZE=$[($(echo $MAX_MAIL_SIZE | sed 's/[^0-9]//g'))*1024*1024] ; fi
     postconf -e message_size_limit=$MAX_MAIL_SIZE    
-
     echo "info:  finished configuring sizes"
 }
 
@@ -520,10 +522,8 @@ roundcube_trash_folder()
 postfix_milter()
 {
     if [ "$(grep "smtpd_milters" /etc/postfix/main.cf | grep -cv localhost)" != "0" ] ; then
-        echo "warn:  another milter already configured, but that's nothing wrong, run again..."
-    fi
 
-    echo "info:  start configuring zipdownload plugin"
+    echo "info:  start configuring another milter"
 
     #Reconfigure OpenDKIM
     if [ "$(postconf smtpd_milters | grep -c inet:localhost:8891)" != "0" ] && [ "$(grep -c "smtpd_milters=inet:localhost:8891" /etc/postfix/master.cf)" == "0" ] ; then
@@ -547,7 +547,7 @@ postfix_milter()
     sed -i --follow-symlinks '/^[^;]*amavisd/s/^/;/' /etc/supervisord.conf
     sed -i --follow-symlinks '/^[^;]*clamd/s/^/;/' /etc/supervisord.conf
 
-    echo "info:  finished configuring zipdownload plugin"
+    echo "info:  finished configuring another milter"
 }
 
 print_passwords()
