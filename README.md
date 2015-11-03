@@ -54,7 +54,7 @@ Below is the complete list of available options that can be used to customize yo
 
   - **TZ**: Sets the timezone. Defaults to `UTC`.
   - **WEBSERVER**: Choose the backend. May be `apache` or `nginx`. Defaults to `nginx`.
-  - **KOLAB_HTTPS** Sets webserver to use https. Defaults to `true`.
+  - **APACHE_HTTPS** Sets apache for force redirect to https. Defaults to `true`.
   - **NGINX_CACHE** Enable nginx and fastcgi cacheing. Defaults to `false`.
   - **SPAM_SIEVE**: Sets the global sieve script to place mail marked as spam into Spam folder. Defaults to `true`.
   - **FAIL2BAN**: Enables Fail2Ban. Defaults to `true`.

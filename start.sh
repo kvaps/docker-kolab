@@ -1,29 +1,4 @@
 #!/bin/bash
-usage ()
-{
-     echo
-     echo "Usage:    ./setup.sh [ARGUMENT]"
-     echo
-     echo "Arguments:"
-     echo "    run                   - Auto start all services or install wizard in case of initial setup"
-     echo "    link                  - Create symlinks default folders to /data"
-     echo "    kolab                 - Configure Kolab from config"
-     echo "    spam                  - Configure spam sieve"
-     echo "    nginx                 - Configure nginx"
-     echo "    nginx_cache           - Configure nginx caching"
-     echo "    ssl                   - Configure SSL using your certs"
-     echo "    fail2ban              - Configure Fail2ban"
-     echo "    dkim                  - Configure OpenDKIM"
-     echo "    rcpt_off              - Disable the Recipient Policy"
-     echo "    locale                - Configure default locale from config"
-     echo "    size                  - Configure size from config"
-     echo "    larry                 - Set Larry skin as default"
-     echo "    zipdownload           - Configure zipdownload plugin for roundcube"
-     echo "    trash                 - Configure trash folder istead flag for deletion"
-     echo "    milter                - Configure another milter; disable amavis and clamd from config"
-     echo
-     exit
-}
 
 random_pwd()
 {
@@ -590,10 +565,40 @@ print_dkim_keys()
     echo "_______________________________________________________"
 }
 
+stop_services()
+{
+    echo "info:  stopping services"
+    services={
+        amavisd
+        clamd
+        cyrus-imapd
+        dirsrv
+        fail2ban
+        httpd
+        kolabd
+        kolab-saslauthd
+        mysqld
+        nginx
+        opendkim
+        php-fpm
+        postfix
+        rsyslog
+        wallace
+    }
+    for i in "${services[@]}"; do service $i stop; done
+    echo "info:  finished stopping services"
+}
+
+start_services()
+{
+         echo "info:  Starting services"
+         /usr/bin/supervisord
+} 
+
 setup_wizard ()
 {
     # Main
-                                           configure_kolab
+                                           set_timezone
     [ $WEBSERVER = "nginx" ]            && configure_nginx
     [ $NGINX_CACHE = true ]             && configure_nginx_cache
     [ $SPAM_SIEVE = true ]              && configure_spam_sieve
@@ -608,50 +613,28 @@ setup_wizard ()
     [ $ROUNDCUBE_ZIPDOWNLOAD = true ]   && then roundcube_zipdownload
     [ $ROUNDCUBE_TRASH = true ]         && then roundcube_trash_folder
     [ $EXT_MILTER_ADDR = true ]         && then postfix_milter
-    # Print parameters
+}
+
+if [ -d /data/etc/dirsrv/slapd-* ] ; then
+     
+     echo "info:  Kolab installation detected on /data volume, run relinkink..."
+
+                                           link_dirs
+                                           setup_wizard
+                                           start_services
+         
+else
+     
+     echo "info:  Kolab data not detected on /data volume, run setup..."
+
+                                           move_dirs
+                                           link_dirs
+                                           configure_kolab
+                                           setup_wizard
+                                           stop_services
+                                           # Print parameters
                                            print_passwords
     [ $DKIM = true ]                    && print_dkim_keys
-}
-
-run ()
-{
-     if [ -d /data/etc/dirsrv/slapd-* ] ; then
-     
-         echo "info:  Kolab installation detected on /data volume, run relinkink..."
-         link_dirs
-         
-         echo "info:  Starting services"
-         /usr/bin/supervisord
-     
-     else
-     
-         echo "info:  Kolab data not detected on /data volume, run setup..."
-         move_dirs
-         link_dirs
-         setup_wizard
-     
-     fi
-}
-
-set_timezone
-
-case "$1" in
-    "run")          run ;;
-    "kolab")        configure_kolab ; print_passwords ;;
-    "nginx")        configure_nginx ;;
-    "nginx_cache")  configure_nginx_cache ;;
-    "spam")         configure_spam_sieve ;;
-    "ssl")          configure_ssl ;;
-    "fail2ban")     configure_fail2ban ;;
-    "dkim")         configure_dkim ; print_dkim_keys ;;
-    "rcpt_off")     kolab_rcpt_policy_off ;;
-    "locale")       kolab_default_locale ;;
-    "size")         configure_size ;;
-    "larry")        roundcube_larry_skin ;;
-    "zipdownload")  roundcube_zipdownload ;;
-    "trash")        roundcube_trash_folder ;;
-    "milter")       postfix_milter ;;
-    "link")         link_dirs ;;
-    *)              usage ;;
-esac
-
+                                           start_services
+                    
+fi
