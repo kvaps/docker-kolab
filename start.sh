@@ -276,7 +276,7 @@ configure_nginx_cache()
 configure_spam_sieve()
 {
     if [[ $(grep -c \$final_spam_destiny.*D_PASS /etc/amavisd/amavisd.conf) == 0 ]] ; then
-        echo "info:  start configuring amavis"
+        echo "info:  start configuring spam sieve"
         
         sed -i '/^[^#]*$sa_spam_subject_tag/s/^/#/' /etc/amavisd/amavisd.conf
         sed -i 's/^\($final_spam_destiny.*= \).*/\1D_PASS;/' /etc/amavisd/amavisd.conf
@@ -298,97 +298,100 @@ EOF
 
         echo "info:  finished configuring amavis"
     else
-        echo "warn:  amavis already configured, skipping..."
+        echo "warn:  spam sieve already configured, skipping..."
     fi
 }
 
 configure_ssl()
 {
     if [ -f /etc/pki/tls/certs/$(hostname -f).crt ] ; then
-        echo "warn:  SSL-certificates already exists, but that's nothing wrong, run again..."
-    fi
-    echo "info:  start configuring SSL-certificates"
+        echo "info:  start configuring SSL"
 
-    # Generate key and certificate
-    openssl req -new -newkey rsa:4096 -days 3650 -nodes -x509 \
-                -subj "/CN=$(hostname -f)" \
-                -keyout /etc/pki/tls/private/$(hostname -f).key \
-                -out /etc/pki/tls/certs/$(hostname -f).crt
-
-    touch /etc/pki/tls/certs/$(hostname -f)-ca.pem
-
-    # Create certificate bundles
-    cat /etc/pki/tls/certs/$(hostname -f).crt /etc/pki/tls/private/$(hostname -f).key /etc/pki/tls/certs/$(hostname -f)-ca.pem > /etc/pki/tls/private/$(hostname -f).bundle.pem
-    cat /etc/pki/tls/certs/$(hostname -f).crt /etc/pki/tls/certs/$(hostname -f)-ca.pem > /etc/pki/tls/certs/$(hostname -f).bundle.pem
-    cat /etc/pki/tls/certs/$(hostname -f)-ca.pem > /etc/pki/tls/certs/$(hostname -f).ca-chain.pem
-    # Set access rights
-    chown -R root:mail /etc/pki/tls/private
-    chmod 600 /etc/pki/tls/private/$(hostname -f).key
-    chmod 750 /etc/pki/tls/private
-    chmod 640 /etc/pki/tls/private/*
-    # Add CA to system’s CA bundle
-    cat /etc/pki/tls/certs/$(hostname -f)-ca.pem >> /etc/pki/tls/certs/ca-bundle.crt
-
-    # Configure apache for SSL
-    sed -i -e '/SSLCertificateFile \/etc\/pki/c\SSLCertificateFile /etc/pki/tls/certs/'$(hostname -f)'.crt' /etc/httpd/conf.d/ssl.conf
-    sed -i -e '/SSLCertificateKeyFile \/etc\/pki/c\SSLCertificateKeyFile /etc/pki/tls/private/'$(hostname -f)'.key' /etc/httpd/conf.d/ssl.conf
-    sed -i -e '/SSLCertificateChainFile \/etc\/pki/c\SSLCertificateChainFile /etc/pki/tls/certs/'$(hostname -f)'.ca-chain.pem' /etc/httpd/conf.d/ssl.conf
-
-    # Configuration nginx for SSL
-    sed -i -e '/ssl_certificate /c\    ssl_certificate /etc/pki/tls/certs/'$(hostname -f)'.crt;' /etc/nginx/conf.d/default.conf
-    sed -i -e '/ssl_certificate_key/c\    ssl_certificate_key /etc/pki/tls/private/'$(hostname -f)'.key;' /etc/nginx/conf.d/default.conf
-    if [ "$(grep -c "ssl_trusted_certificate" /etc/nginx/conf.d/default.conf)" == "0" ] ; then
-         sed -i -e '/ssl_certificate_key/a\    ssl_trusted_certificate /etc/pki/tls/certs/'$(hostname -f)'.ca-chain.pem;' /etc/nginx/conf.d/default.conf
-    else 
-         sed -i -e '/ssl_trusted_certificate/c\    ssl_trusted_certificate /etc/pki/tls/certs/'$(hostname -f)'.ca-chain.pem;' /etc/nginx/conf.d/default.conf
-    fi
-
-    #Configure Cyrus for SSL
-    sed -r -i --follow-symlinks \
-        -e 's|^tls_server_cert:.*|tls_server_cert: /etc/pki/tls/certs/'$(hostname -f)'.crt|g' \
-        -e 's|^tls_server_key:.*|tls_server_key: /etc/pki/tls/private/'$(hostname -f)'.key|g' \
-        -e 's|^tls_server_ca_file:.*|tls_server_ca_file: /etc/pki/tls/certs/'$(hostname -f)'.ca-chain.pem|g' \
-        /etc/imapd.conf
+        # Generate key and certificate
+        openssl req -new -newkey rsa:4096 -days 3650 -nodes -x509 \
+                    -subj "/CN=$(hostname -f)" \
+                    -keyout /etc/pki/tls/private/$(hostname -f).key \
+                    -out /etc/pki/tls/certs/$(hostname -f).crt
     
-    #Configure Postfix for SSL
-    postconf -e smtpd_tls_key_file=/etc/pki/tls/private/$(hostname -f).key
-    postconf -e smtpd_tls_cert_file=/etc/pki/tls/certs/$(hostname -f).crt
-    postconf -e smtpd_tls_CAfile=/etc/pki/tls/certs/$(hostname -f).ca-chain.pem
-
-    #Configure kolab-cli for SSL
-    sed -r -i \
-          -e '/api_url/d' \
-          -e "s#\[kolab_wap\]#[kolab_wap]\napi_url = https://$(hostname -f)/kolab-webadmin/api#g" \
-          /etc/kolab/kolab.conf
+        touch /etc/pki/tls/certs/$(hostname -f)-ca.pem
     
-    #Configure Roundcube for SSL
-    sed -i -e 's/http:/https:/' /etc/roundcubemail/libkolab.inc.php
-    sed -i -e 's/http:/https:/' /etc/roundcubemail/kolab_files.inc.php
-    sed -i -e '/^?>/d' /etc/roundcubemail/config.inc.php
+        # Create certificate bundles
+        cat /etc/pki/tls/certs/$(hostname -f).crt /etc/pki/tls/private/$(hostname -f).key /etc/pki/tls/certs/$(hostname -f)-ca.pem > /etc/pki/tls/private/$(hostname -f).bundle.pem
+        cat /etc/pki/tls/certs/$(hostname -f).crt /etc/pki/tls/certs/$(hostname -f)-ca.pem > /etc/pki/tls/certs/$(hostname -f).bundle.pem
+        cat /etc/pki/tls/certs/$(hostname -f)-ca.pem > /etc/pki/tls/certs/$(hostname -f).ca-chain.pem
+        # Set access rights
+        chown -R root:mail /etc/pki/tls/private
+        chmod 600 /etc/pki/tls/private/$(hostname -f).key
+        chmod 750 /etc/pki/tls/private
+        chmod 640 /etc/pki/tls/private/*
+        # Add CA to system’s CA bundle
+        cat /etc/pki/tls/certs/$(hostname -f)-ca.pem >> /etc/pki/tls/certs/ca-bundle.crt
+    
+        # Configure apache for SSL
+        sed -i -e '/SSLCertificateFile \/etc\/pki/c\SSLCertificateFile /etc/pki/tls/certs/'$(hostname -f)'.crt' /etc/httpd/conf.d/ssl.conf
+        sed -i -e '/SSLCertificateKeyFile \/etc\/pki/c\SSLCertificateKeyFile /etc/pki/tls/private/'$(hostname -f)'.key' /etc/httpd/conf.d/ssl.conf
+        sed -i -e '/SSLCertificateChainFile \/etc\/pki/c\SSLCertificateChainFile /etc/pki/tls/certs/'$(hostname -f)'.ca-chain.pem' /etc/httpd/conf.d/ssl.conf
+    
+        # Configuration nginx for SSL
+        sed -i -e '/ssl_certificate /c\    ssl_certificate /etc/pki/tls/certs/'$(hostname -f)'.crt;' /etc/nginx/conf.d/default.conf
+        sed -i -e '/ssl_certificate_key/c\    ssl_certificate_key /etc/pki/tls/private/'$(hostname -f)'.key;' /etc/nginx/conf.d/default.conf
+        if [ "$(grep -c "ssl_trusted_certificate" /etc/nginx/conf.d/default.conf)" == "0" ] ; then
+             sed -i -e '/ssl_certificate_key/a\    ssl_trusted_certificate /etc/pki/tls/certs/'$(hostname -f)'.ca-chain.pem;' /etc/nginx/conf.d/default.conf
+        else 
+             sed -i -e '/ssl_trusted_certificate/c\    ssl_trusted_certificate /etc/pki/tls/certs/'$(hostname -f)'.ca-chain.pem;' /etc/nginx/conf.d/default.conf
+        fi
+    
+        #Configure Cyrus for SSL
+        sed -r -i --follow-symlinks \
+            -e 's|^tls_server_cert:.*|tls_server_cert: /etc/pki/tls/certs/'$(hostname -f)'.crt|g' \
+            -e 's|^tls_server_key:.*|tls_server_key: /etc/pki/tls/private/'$(hostname -f)'.key|g' \
+            -e 's|^tls_server_ca_file:.*|tls_server_ca_file: /etc/pki/tls/certs/'$(hostname -f)'.ca-chain.pem|g' \
+            /etc/imapd.conf
         
-    # Tell the webclient the SSL iRony URLs for CalDAV and CardDAV
-    if [ "$(grep -c "calendar_caldav_url" /etc/roundcubemail/config.inc.php)" == "0" ] ; then
-    cat >> /etc/roundcubemail/config.inc.php << EOF
+        #Configure Postfix for SSL
+        postconf -e smtpd_tls_key_file=/etc/pki/tls/private/$(hostname -f).key
+        postconf -e smtpd_tls_cert_file=/etc/pki/tls/certs/$(hostname -f).crt
+        postconf -e smtpd_tls_CAfile=/etc/pki/tls/certs/$(hostname -f).ca-chain.pem
+    
+        #Configure kolab-cli for SSL
+        sed -r -i \
+              -e '/api_url/d' \
+              -e "s#\[kolab_wap\]#[kolab_wap]\napi_url = https://$(hostname -f)/kolab-webadmin/api#g" \
+              /etc/kolab/kolab.conf
+        
+        #Configure Roundcube for SSL
+        sed -i -e 's/http:/https:/' /etc/roundcubemail/libkolab.inc.php
+        sed -i -e 's/http:/https:/' /etc/roundcubemail/kolab_files.inc.php
+        sed -i -e '/^?>/d' /etc/roundcubemail/config.inc.php
+            
+        # Tell the webclient the SSL iRony URLs for CalDAV and CardDAV
+        if [ "$(grep -c "calendar_caldav_url" /etc/roundcubemail/config.inc.php)" == "0" ] ; then
+        cat >> /etc/roundcubemail/config.inc.php << EOF
 # caldav/webdav
 \$config['calendar_caldav_url']             = "https://%h/iRony/calendars/%u/%i";
 \$config['kolab_addressbook_carddav_url']   = 'https://%h/iRony/addressbooks/%u/%i';
 EOF
-    fi
-
-    if [ "$(grep -c "force_https" /etc/roundcubemail/config.inc.php)" == "0" ] ; then
-    # Redirect all http traffic to https
-    cat >> /etc/roundcubemail/config.inc.php << EOF
+        fi
+    
+        if [ "$(grep -c "force_https" /etc/roundcubemail/config.inc.php)" == "0" ] ; then
+        # Redirect all http traffic to https
+        cat >> /etc/roundcubemail/config.inc.php << EOF
 # Force https redirect for http requests
 \$config['force_https'] = true;
 EOF
-    fi
+        fi
 
-    echo "info:  finished configuring SSL"
+        echo "info:  finished configuring SSL"
+    else
+        echo "warn:  SSL already configured, skipping..."
+    fi
 }
 
 configure_apache_ssl()
 {
-    # SSL by default in apache
+    if [ "$(grep -c 'RewriteRule ^(.*)$ https://%{HTTP_HOST}' /etc/httpd/conf/httpd.conf)" == "0" ] ; then
+    echo "info:  start configuring SSL by default in apache"
+
     cat >> /etc/httpd/conf/httpd.conf << EOF
 
 <VirtualHost _default_:80>
@@ -396,6 +399,10 @@ configure_apache_ssl()
     RewriteRule ^(.*)$ https://%{HTTP_HOST}\$1 [R=301,L]
 </VirtualHost>
 EOF
+    echo "info:  finished configuring SSL by default in apache"
+    else
+        echo "warn:  SSL by default in apache already configured, skipping..."
+    fi
 }
 
 configure_fail2ban()
