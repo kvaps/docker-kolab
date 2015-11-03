@@ -1,6 +1,6 @@
 FROM centos:centos6
 MAINTAINER kvaps <kvapss@gmail.com>
-ENV REFRESHED_AT 2015-09-17
+ENV REFRESHED_AT 2015-11-03
 
 
 RUN yum -y update
