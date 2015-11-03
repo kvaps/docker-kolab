@@ -41,7 +41,8 @@ RUN echo password | saslpasswd2 sasldb2 && chown cyrus:saslauth /etc/sasldb2
 RUN sed -i "840s/\$this/\$me/g"  /usr/share/roundcubemail/program/lib/Roundcube/rcube_ldap.php 
 
 # Add config and setup script, run it
-ADD wrappers/* /bin/
+ADD service-wrapper.sh /bin/service-wrapper.sh
+ADD set_default_sieve.sh /bin/set_default_sieve.sh
 ADD start.sh /bin/start.sh
 ADD configs/supervisord.conf /etc/supervisord.conf
 ADD configs/nginx/conf.d/default.conf /etc/nginx/conf.d/default.conf
