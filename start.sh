@@ -498,31 +498,32 @@ postfix_milter()
 {
     if [ "$(grep "smtpd_milters" /etc/postfix/main.cf | grep -cv localhost)" != "0" ] ; then
 
-    echo "info:  start configuring another milter"
-
-    #Reconfigure OpenDKIM
-    if [ "$(postconf smtpd_milters | grep -c inet:localhost:8891)" != "0" ] && [ "$(grep -c "smtpd_milters=inet:localhost:8891" /etc/postfix/master.cf)" == "0" ] ; then
-        sed -i "/^127\.0\.0\.1\:10027.*smtpd/a \    -o smtpd_milters=inet:localhost:8891" /etc/postfix/master.cf
-        sed -i "/^127\.0\.0\.1\:10027.*smtpd/a \    -o milter_protocol=2" /etc/postfix/master.cf
-    fi
-
-    postconf -e milter_protocol=$EXT_MILTER_PROTO
-    postconf -e smtpd_milters=$EXT_MILTER_ADDR
-    postconf -e non_smtpd_milters=$EXT_MILTER_ADDR
-    postconf -e content_filter=smtp-wallace:[127.0.0.1]:10026
+        echo "info:  start configuring another milter"
     
-    #Disable amavis
-    awk '/smtp-amavis/{f=1} !NF{f=0} f{$0="#" $0} 1' /etc/postfix/master.cf > /tmp/master.cf.tmp
-    awk '/127.0.0.1:10025/{f=1} !NF{f=0} f{$0="#" $0} 1' /tmp/master.cf.tmp > /etc/postfix/master.cf
-    rm -f /tmp/master.cf.tmp
-
-    sed -i '/^[^#].*receive_override_options=no_milters/d' /etc/postfix/master.cf
-
-    # Comment amavis and clamd
-    sed -i --follow-symlinks '/^[^;]*amavisd/s/^/;/' /etc/supervisord.conf
-    sed -i --follow-symlinks '/^[^;]*clamd/s/^/;/' /etc/supervisord.conf
-
-    echo "info:  finished configuring another milter"
+        #Reconfigure OpenDKIM
+        if [ "$(postconf smtpd_milters | grep -c inet:localhost:8891)" != "0" ] && [ "$(grep -c "smtpd_milters=inet:localhost:8891" /etc/postfix/master.cf)" == "0" ] ; then
+            sed -i "/^127\.0\.0\.1\:10027.*smtpd/a \    -o smtpd_milters=inet:localhost:8891" /etc/postfix/master.cf
+            sed -i "/^127\.0\.0\.1\:10027.*smtpd/a \    -o milter_protocol=2" /etc/postfix/master.cf
+        fi
+    
+        postconf -e milter_protocol=$EXT_MILTER_PROTO
+        postconf -e smtpd_milters=$EXT_MILTER_ADDR
+        postconf -e non_smtpd_milters=$EXT_MILTER_ADDR
+        postconf -e content_filter=smtp-wallace:[127.0.0.1]:10026
+        
+        #Disable amavis
+        awk '/smtp-amavis/{f=1} !NF{f=0} f{$0="#" $0} 1' /etc/postfix/master.cf > /tmp/master.cf.tmp
+        awk '/127.0.0.1:10025/{f=1} !NF{f=0} f{$0="#" $0} 1' /tmp/master.cf.tmp > /etc/postfix/master.cf
+        rm -f /tmp/master.cf.tmp
+    
+        sed -i '/^[^#].*receive_override_options=no_milters/d' /etc/postfix/master.cf
+    
+        # Comment amavis and clamd
+        sed -i --follow-symlinks '/^[^;]*amavisd/s/^/;/' /etc/supervisord.conf
+        sed -i --follow-symlinks '/^[^;]*clamd/s/^/;/' /etc/supervisord.conf
+    
+        echo "info:  finished configuring another milter"
+    fi
 }
 
 print_passwords()
@@ -568,7 +569,7 @@ print_dkim_keys()
 stop_services()
 {
     echo "info:  stopping services"
-    services={
+    services=(
         amavisd
         clamd
         cyrus-imapd
@@ -584,7 +585,7 @@ stop_services()
         postfix
         rsyslog
         wallace
-    }
+    )
     for i in "${services[@]}"; do service $i stop; done
     echo "info:  finished stopping services"
 }
@@ -598,7 +599,6 @@ start_services()
 setup_wizard ()
 {
     # Main
-                                           set_timezone
     [ $WEBSERVER = "nginx" ]            && configure_nginx
     [ $NGINX_CACHE = true ]             && configure_nginx_cache
     [ $SPAM_SIEVE = true ]              && configure_spam_sieve
@@ -610,15 +610,17 @@ setup_wizard ()
     [ ! -z "$KOLAB_DEFAULT_LOCALE" ]    && kolab_default_locale
                                            configure_size 
     [ ! -z "$ROUNDCUBE_SKIN" ]          && roundcube_skin
-    [ $ROUNDCUBE_ZIPDOWNLOAD = true ]   && then roundcube_zipdownload
-    [ $ROUNDCUBE_TRASH = true ]         && then roundcube_trash_folder
-    [ $EXT_MILTER_ADDR = true ]         && then postfix_milter
+    [ $ROUNDCUBE_ZIPDOWNLOAD = true ]   && roundcube_zipdownload
+    [ $ROUNDCUBE_TRASH = true ]         && roundcube_trash_folder
+    [ $EXT_MILTER_ADDR = true ]         && postfix_milter
 }
 
 if [ -d /data/etc/dirsrv/slapd-* ] ; then
      
      echo "info:  Kolab installation detected on /data volume, run relinkink..."
 
+                                           load_defaults
+                                           set_timezone
                                            link_dirs
                                            setup_wizard
                                            start_services
@@ -627,6 +629,8 @@ else
      
      echo "info:  Kolab data not detected on /data volume, run setup..."
 
+                                           load_defaults
+                                           set_timezone
                                            move_dirs
                                            link_dirs
                                            configure_kolab
