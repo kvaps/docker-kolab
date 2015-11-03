@@ -119,6 +119,47 @@ This settings disables amavis with clamd and configures another milter
   - **EXT_MILTER_ADDR**: Sets the milter address and port. Example to `inet:rmilter:11339`.
   - **EXT_MILTER_PROTO**: Sets the milter protocol. Defaults to `4`.
 
+Update notes
+------------
+
+For update from previous versions of my docker image, please follow these simple steps:
+
+  - Run container with `--entrypoint=/bin/bash` option:
+```bash
+docker run \
+    -v /opt/kolab:/data:rw \
+    -ti --rm\
+    --entrypoint=/bin/bash \
+    kvaps/kolab
+```
+
+  - Update supervisord config:
+```bash
+
+# Сheck which services is startup (not commented)
+cat /data/etc/supervisord.conf
+# Make the same
+vi /etc/supervisord.conf
+# Replace your file with a new
+cp -f /etc/supervisord.conf /data/etc/supervisord.conf
+```
+
+  - If you have not default.bc script:
+
+```bash
+# Create default sieve script
+mkdir -p /data/var/lib/imap/sieve/global/
+cat > /data/var/lib/imap/sieve/global/default.script << EOF
+require "fileinto";
+if header :contains "X-Spam-Flag" "YES"
+{
+        fileinto "Spam";
+}
+EOF
+# Compile it
+/usr/lib/cyrus-imapd/sievec /data/var/lib/imap/sieve/global/default.script /data/var/lib/imap/sieve/global/default.bc
+```
+
 Systemd unit
 ------------
 
