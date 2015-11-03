@@ -42,7 +42,7 @@ RUN sed -i "840s/\$this/\$me/g"  /usr/share/roundcubemail/program/lib/Roundcube/
 
 # Add config and setup script, run it
 ADD service-wrapper.sh /bin/service-wrapper.sh
-ADD set_default_sieve.sh /bin/set_default_sieve.sh
+ADD set_spam_sieve.sh /bin/set_spam_sieve.sh
 ADD start.sh /bin/start.sh
 ADD configs/supervisord.conf /etc/supervisord.conf
 ADD configs/nginx/conf.d/default.conf /etc/nginx/conf.d/default.conf

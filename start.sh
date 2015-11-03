@@ -17,6 +17,7 @@ load_defaults()
     chk_var  APACHE_HTTPS          true
     chk_var  NGINX_CACHE           false
     chk_var  SPAM_SIEVE            true
+    chk_var  SPAM_SIEVE_TIMEOUT    "15m"
     chk_var  FAIL2BAN              true
     chk_var  DKIM                  true
     chk_var  LDAP_ADMIN_PASS       `random_pwd`
@@ -198,7 +199,7 @@ EOF
 
 configure_nginx()
 {
-    if [[ $(grep -c Kolab /etc/nginx/conf.d/default.conf) == 0 ]] ; then
+    if [ "$(grep -c "^[^;]*nginx" /etc/supervisord.conf)" == "0" ] ; then
         echo "info:  start configuring nginx"
 
         sed -i '/^\[kolab_wap\]/,/^\[/ { x; /^$/ !{ x; H }; /^$/ { x; h; }; d; }; x; /^\[kolab_wap\]/ { s/\(\n\+[^\n]*\)$/\napi_url = https:\/\/'$(hostname -f)'\/kolab-webadmin\/api\1/; p; x; p; x; d }; x' /etc/kolab/kolab.conf
@@ -408,14 +409,14 @@ configure_dkim()
     
         sed -i --follow-symlinks 's/^\(^Mode\).*/\1  sv/' /etc/opendkim.conf
 
-        tee -a /etc/opendkim.conf  <<EOF
+        cat >> /etc/opendkim.conf  <<EOF
 KeyTable      /etc/opendkim/KeyTable
 SigningTable  /etc/opendkim/SigningTable
 X-Header yes 
 EOF
 
-        echo $(hostname -f | sed s/\\./._domainkey./) $(hostname -d):$(hostname -s):$(ls /etc/opendkim/keys/*.private) | tee -a /etc/opendkim/KeyTable
-        echo $(hostname -d) $(echo $(hostname -f) | sed s/\\./._domainkey./) | tee -a /etc/opendkim/SigningTable
+        echo $(hostname -f | sed s/\\./._domainkey./) $(hostname -d):$(hostname -s):$(ls /etc/opendkim/keys/*.private) | cat >> /etc/opendkim/KeyTable
+        echo $(hostname -d) $(echo $(hostname -f) | sed s/\\./._domainkey./) | cat >> /etc/opendkim/SigningTable
 
         postconf -e milter_default_action=accept
         postconf -e milter_protocol=2
@@ -587,6 +588,10 @@ stop_services()
         wallace
     )
     for i in "${services[@]}"; do service $i stop; done
+
+    #Kill Apache
+    pkill httpd
+
     echo "info:  finished stopping services"
 }
 
