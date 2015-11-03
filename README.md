@@ -44,6 +44,33 @@ Configuration
 
 ### SSL-certificates
 
+```bash
+
+# Go to tls folder of your container
+cd /opt/kolab/etc/pki/tls
+
+# Set the variable with your kolab hostname
+KOLAB_HOSTNAME='mail.example.org'
+
+# Write your keys
+vim private/${KOLAB_HOSTNAME}.key
+vim certs/${KOLAB_HOSTNAME}.crt
+vim certs/${KOLAB_HOSTNAME}-ca.pem
+
+# Create certificate bundles
+cat certs/${KOLAB_HOSTNAME}.crt private/${KOLAB_HOSTNAME}.key certs/${KOLAB_HOSTNAME}-ca.pem > private/${KOLAB_HOSTNAME}.bundle.pem
+cat certs/${KOLAB_HOSTNAME}.crt certs/${KOLAB_HOSTNAME}-ca.pem > certs/${KOLAB_HOSTNAME}.bundle.pem
+cat certs/${KOLAB_HOSTNAME}-ca.pem > certs/${KOLAB_HOSTNAME}.ca-chain.pem
+
+# Set access rights
+chown -R root:mail private
+chmod 750 private
+chmod 640 private/*
+
+# Add CA to system’s CA bundle
+cat certs/${KOLAB_HOSTNAME}-ca.pem >> certs/ca-bundle.crt
+```
+
 ### Available Configuration Parameters
 
 *Please refer the docker run command options for the `--env-file` flag where you can specify all required environment variables in a single file. This will save you from writing a potentially long docker run command. Alternatively you can use docker-compose.*
