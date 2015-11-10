@@ -309,8 +309,13 @@ configure_ssl()
         sed -i -e '/SSLCertificateChainFile \/etc\/pki/c\SSLCertificateChainFile /etc/pki/tls/certs/'$(hostname -f)'.ca-chain.pem' /etc/httpd/conf.d/ssl.conf
     
         # Configuration nginx for SSL
-        sed -i -e '/ssl_certificate /c\    ssl_certificate /etc/pki/tls/certs/'$(hostname -f)'.bundle.pem;;' /etc/nginx/conf.d/default.conf
+        sed -i -e '/ssl_certificate /c\    ssl_certificate /etc/pki/tls/certs/'$(hostname -f)'.crt;' /etc/nginx/conf.d/default.conf
         sed -i -e '/ssl_certificate_key/c\    ssl_certificate_key /etc/pki/tls/private/'$(hostname -f)'.key;' /etc/nginx/conf.d/default.conf
+        if [ "$(grep -c "ssl_trusted_certificate" /etc/nginx/conf.d/default.conf)" == "0" ] ; then
+             sed -i -e '/ssl_certificate_key/a\    ssl_trusted_certificate /etc/pki/tls/certs/'$(hostname -f)'.ca-chain.pem;' /etc/nginx/conf.d/default.conf
+        else 
+             sed -i -e '/ssl_trusted_certificate/c\    ssl_trusted_certificate /etc/pki/tls/certs/'$(hostname -f)'.ca-chain.pem;' /etc/nginx/conf.d/default.conf
+        fi
     
         #Configure Cyrus for SSL
         sed -r -i --follow-symlinks \
@@ -596,49 +601,32 @@ start_services()
          /usr/bin/supervisord
 } 
 
-setup_wizard ()
-{
-    # Main
-    [ $WEBSERVER = "nginx" ]            && configure_nginx
-    [ $NGINX_CACHE = true ]             && configure_nginx_cache
-    [ $SPAM_SIEVE = true ]              && configure_spam_sieve
+[ -d /data/etc/dirsrv/slapd-* ] && export FIRST_SETUP=true #Check for first setup
+
+                                           load_defaults
+                                           set_timezone
+[ "$FIRST_SETUP" = true  ]              && move_dirs
+                                           link_dirs
+[ "$FIRST_SETUP" = true ]               && configure_kolab
+
+
+[ "$WEBSERVER" = "nginx" ]              && configure_nginx
+[ "$NGINX_CACHE" = true ]               && configure_nginx_cache
+[ "$SPAM_SIEVE" = true ]                && configure_spam_sieve
                                            configure_ssl
-    [ $APACHE_HTTPS = true ]            && configure_apache_ssl
-    [ $FAIL2BAN = true ]                && configure_fail2ban
-    [ $DKIM = true ]                    && configure_dkim
-    [ $KOLAB_RCPT_POLICY = false ]      && kolab_rcpt_policy_off
-    [ ! -z "$KOLAB_DEFAULT_LOCALE" ]    && kolab_default_locale
-                                           configure_size 
-    [ ! -z "$ROUNDCUBE_SKIN" ]          && roundcube_skin
-    [ $ROUNDCUBE_ZIPDOWNLOAD = true ]   && roundcube_zipdownload
-    [ $ROUNDCUBE_TRASH = true ]         && roundcube_trash_folder
-    [ $EXT_MILTER_ADDR = true ]         && postfix_milter
-}
-
-if [ -d /data/etc/dirsrv/slapd-* ] ; then
-     
-     echo "info:  Kolab installation detected on /data volume, run relinkink..."
-
-                                           load_defaults
-                                           set_timezone
-                                           link_dirs
-                                           setup_wizard
-                                           start_services
-         
-else
-     
-     echo "info:  Kolab data not detected on /data volume, run setup..."
-
-                                           load_defaults
-                                           set_timezone
-                                           move_dirs
-                                           link_dirs
-                                           configure_kolab
-                                           setup_wizard
-                                           stop_services
-                                           # Print parameters
-                                           print_passwords
-    [ $DKIM = true ]                    && print_dkim_keys
-                                           start_services
-                    
+[ "$APACHE_HTTPS" = true ]              && configure_apache_ssl
+[ "$FAIL2BAN" = true ]                  && configure_fail2ban
+[ "$DKIM" = true ]                      && configure_dkim
+[ "$KOLAB_RCPT_POLICY" = false ]        && kolab_rcpt_policy_off
+[ ! -z "$KOLAB_DEFAULT_LOCALE" ]        && kolab_default_locale
+                                           configure_size
+[ ! -z "$ROUNDCUBE_SKIN" ]              && roundcube_skin
+[ "$ROUNDCUBE_ZIPDOWNLOAD" = true ]     && roundcube_zipdownload
+[ "$ROUNDCUBE_TRASH" = true ]           && roundcube_trash_folder
+[ "$EXT_MILTER_ADDR" = true ]           && postfix_milter
+if [ "$FIRST_SETUP" = true ]; then
+                                          stop_services
+                                          print_passwords
+    [ $DKIM = true ]                   && print_dkim_keys
 fi
+                                          start_services
