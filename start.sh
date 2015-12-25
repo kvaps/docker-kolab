@@ -4,10 +4,10 @@ chk_var () {
    eval var=\$$1
    if [ -z "$var" ]; then
        if [ -z "$2" ]; then
-           export "$1"="$2"
-       else
            echo "err:  Enviroment vaiable \$$1 is not set."
            exit 1
+       else
+           export "$1"="$2"
        fi
    fi
    
@@ -32,6 +32,7 @@ load_defaults()
     chk_var  ROUNDCUBE_SKIN        "chameleon"
     chk_var  ROUNDCUBE_ZIPDOWNLOAD true
     chk_var  ROUNDCUBE_TRASH       "trash"
+    chk_var  CERT_PATH             "/etc/pki/tls/kolab"
 }
 
 set_timezone()
@@ -284,54 +285,46 @@ EOF
 
 configure_ssl()
 {
-    if [ -f /etc/letsencrypt/live/$(hostname -f).crt ] ; then
+    if [ -d ${CERT_PATH}/$(hostname -f) ] ; then
         echo "info:  start configuring SSL"
 
         # Generate key and certificate
         openssl req -new -newkey rsa:4096 -days 3650 -nodes -x509 \
                     -subj "/CN=$(hostname -f)" \
-                    -keyout /etc/pki/tls/private/$(hostname -f).key \
-                    -out /etc/pki/tls/certs/$(hostname -f).crt
+                    -keyout ${CERT_PATH}/$(hostname -f)/privkey.pem \
+                    -out ${CERT_PATH}/$(hostname -f)/cert.pem
     
-        touch /etc/pki/tls/certs/$(hostname -f)-ca.pem
+        touch ${CERT_PATH}/$(hostname -f)/chain.pem
     
-        # Create certificate bundles
-        cat /etc/pki/tls/certs/$(hostname -f).crt /etc/pki/tls/private/$(hostname -f).key /etc/pki/tls/certs/$(hostname -f)-ca.pem > /etc/pki/tls/private/$(hostname -f).bundle.pem
-        cat /etc/pki/tls/certs/$(hostname -f).crt /etc/pki/tls/certs/$(hostname -f)-ca.pem > /etc/pki/tls/certs/$(hostname -f).bundle.pem
-        cat /etc/pki/tls/certs/$(hostname -f)-ca.pem > /etc/pki/tls/certs/$(hostname -f).ca-chain.pem
-        # Set access rights
-        chown -R root:mail /etc/pki/tls/private
-        chmod 600 /etc/pki/tls/private/$(hostname -f).key
-        chmod 750 /etc/pki/tls/private
-        chmod 640 /etc/pki/tls/private/*
         # Add CA to system’s CA bundle
-        cat /etc/pki/tls/certs/$(hostname -f)-ca.pem >> /etc/pki/tls/certs/ca-bundle.crt
+        cat ${CERT_PATH}/$(hostname -f)/chain.pem >> /etc/pki/tls/certs/ca-bundle.crt
+
+        # Set access rights
+        chown -R root:mail ${CERT_PATH}/$(hostname -f)
+        chmod 750 ${CERT_PATH}/$(hostname -f)
+        chmod 640 ${CERT_PATH}/$(hostname -f)/*
+        chmod 600 ${CERT_PATH}/$(hostname -f)/privkey.pem
     
         # Configure apache for SSL
-        sed -i -e '/SSLCertificateFile \/etc\/pki/c\SSLCertificateFile /etc/pki/tls/certs/'$(hostname -f)'.crt' /etc/httpd/conf.d/ssl.conf
-        sed -i -e '/SSLCertificateKeyFile \/etc\/pki/c\SSLCertificateKeyFile /etc/pki/tls/private/'$(hostname -f)'.key' /etc/httpd/conf.d/ssl.conf
-        sed -i -e '/SSLCertificateChainFile \/etc\/pki/c\SSLCertificateChainFile /etc/pki/tls/certs/'$(hostname -f)'.ca-chain.pem' /etc/httpd/conf.d/ssl.conf
+        sed -i -e "/SSLCertificateFile /c\SSLCertificateFile ${CERT_PATH}/$(hostname -f)/cert.pem" /etc/httpd/conf.d/ssl.conf
+        sed -i -e "/SSLCertificateKeyFile /c\SSLCertificateKeyFile ${CERT_PATH}/$(hostname -f)/privkey.pem" /etc/httpd/conf.d/ssl.conf
+        sed -i -e "/SSLCertificateChainFile /c\SSLCertificateChainFile ${CERT_PATH}/$(hostname -f)/chain.pem" /etc/httpd/conf.d/ssl.conf
     
         # Configuration nginx for SSL
-        sed -i -e '/ssl_certificate /c\    ssl_certificate /etc/pki/tls/certs/'$(hostname -f)'.crt;' /etc/nginx/conf.d/default.conf
-        sed -i -e '/ssl_certificate_key/c\    ssl_certificate_key /etc/pki/tls/private/'$(hostname -f)'.key;' /etc/nginx/conf.d/default.conf
-        if [ "$(grep -c "ssl_trusted_certificate" /etc/nginx/conf.d/default.conf)" == "0" ] ; then
-             sed -i -e '/ssl_certificate_key/a\    ssl_trusted_certificate /etc/pki/tls/certs/'$(hostname -f)'.ca-chain.pem;' /etc/nginx/conf.d/default.conf
-        else 
-             sed -i -e '/ssl_trusted_certificate/c\    ssl_trusted_certificate /etc/pki/tls/certs/'$(hostname -f)'.ca-chain.pem;' /etc/nginx/conf.d/default.conf
-        fi
+        sed -i -e "/ssl_certificate /c\    ssl_certificate ${CERT_PATH}/$(hostname -f)/fullchain.pem;" /etc/nginx/conf.d/default.conf
+        sed -i -e "/ssl_certificate_key/c\    ssl_certificate_key ${CERT_PATH}/$(hostname -f)/privkey.pem;" /etc/nginx/conf.d/default.conf
     
         #Configure Cyrus for SSL
         sed -r -i --follow-symlinks \
-            -e 's|^tls_server_cert:.*|tls_server_cert: /etc/pki/tls/certs/'$(hostname -f)'.crt|g' \
-            -e 's|^tls_server_key:.*|tls_server_key: /etc/pki/tls/private/'$(hostname -f)'.key|g' \
-            -e 's|^tls_server_ca_file:.*|tls_server_ca_file: /etc/pki/tls/certs/'$(hostname -f)'.ca-chain.pem|g' \
+            -e "s|^tls_server_cert:.*|tls_server_cert: ${CERT_PATH}/$(hostname -f)/cert.pem|g" \
+            -e "s|^tls_server_key:.*|tls_server_key: ${CERT_PATH}/$(hostname -f)/privkey.pem|g" \
+            -e "s|^tls_server_ca_file:.*|tls_server_ca_file: ${CERT_PATH}/$(hostname -f)/chain.pem|g" \
             /etc/imapd.conf
         
         #Configure Postfix for SSL
-        postconf -e smtpd_tls_key_file=/etc/pki/tls/private/$(hostname -f).key
-        postconf -e smtpd_tls_cert_file=/etc/pki/tls/certs/$(hostname -f).crt
-        postconf -e smtpd_tls_CAfile=/etc/pki/tls/certs/$(hostname -f).ca-chain.pem
+        postconf -e smtpd_tls_key_file=${CERT_PATH}/$(hostname -f)/privkey.pem
+        postconf -e smtpd_tls_cert_file=${CERT_PATH}/$(hostname -f)/cert.pem
+        postconf -e smtpd_tls_CAfile=${CERT_PATH}/$(hostname -f)/chain.pem
     
         #Configure kolab-cli for SSL
         sed -r -i \
