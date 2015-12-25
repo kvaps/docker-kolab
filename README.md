@@ -44,6 +44,46 @@ You can also more integrate Kolab to your system, simply replace `-v` options li
     -v /var/log/kolab:/data/var/log:rw \
 ```
 
+Docker-compose
+--------------
+
+You can use the docker-compose for this image is really simplify your life:
+
+```yaml
+kolab:
+  restart: always
+  image: kvaps/kolab
+  hostname: mail
+  domainname: example.org
+  volumes:
+    - /etc/localtime:/etc/localtime:ro
+    - ./kolab:/data:rw
+  environment:
+    - TZ=Europe/Moscow
+    - LDAP_ADMIN_PASS=<password>
+    - LDAP_MANAGER_PASS=<password>
+    - LDAP_CYRUS_PASS=<password>
+    - LDAP_KOLAB_PASS=<password>
+    - MYSQL_ROOT_PASS=<password>
+    - MYSQL_KOLAB_PASS=<password>
+    - MYSQL_ROUNDCUBE_PASS=<password>
+    - KOLAB_DEFAULT_LOCALE=ru_RU
+    - ROUNDCUBE_SKIN=larry
+  ports:
+    - 80:80
+    - 443:443
+    - 25:25
+    - 587:587
+    - 110:110
+    - 995:995
+    - 143:143
+    - 993:993
+    - 4190:4190
+    - 389:389
+  cap_add:
+    - NET_ADMIN
+```
+
 Configuration
 -------------
 
