@@ -1,13 +1,16 @@
 #!/bin/bash
 
-random_pwd()
-{
-    cat /dev/urandom | env LC_CTYPE=C tr -dc a-zA-Z0-9 | head -c 16; echo;
-}
-
 chk_var () {
    eval var=\$$1
-   [ -z "$var" ] && export "$1"="$2"
+   if [ -z "$var" ]; then
+       if [ -z "$2" ]; then
+           export "$1"="$2"
+       else
+           echo "err:  Enviroment vaiable \$$1 is not set."
+           exit 1
+       fi
+   fi
+   
 }
 
 load_defaults()
@@ -20,13 +23,6 @@ load_defaults()
     chk_var  SPAM_SIEVE_TIMEOUT    "15m"
     chk_var  FAIL2BAN              true
     chk_var  DKIM                  true
-    chk_var  LDAP_ADMIN_PASS       `random_pwd`
-    chk_var  LDAP_MANAGER_PASS     `random_pwd`
-    chk_var  LDAP_CYRUS_PASS       `random_pwd`
-    chk_var  LDAP_KOLAB_PASS       `random_pwd`
-    chk_var  MYSQL_ROOT_PASS       `random_pwd`
-    chk_var  MYSQL_KOLAB_PASS      `random_pwd`
-    chk_var  MYSQL_ROUNDCUBE_PASS  `random_pwd`
     chk_var  KOLAB_RCPT_POLICY     "false"
     chk_var  KOLAB_DEFAULT_LOCALE  "en_US"
     chk_var  MAX_MEMORY_SIZE       "256M"
@@ -132,6 +128,14 @@ configure_kolab()
 {
     if [ ! -d /etc/dirsrv/slapd-* ] ; then 
         echo "info:  start configuring Kolab"
+
+        chk_var  LDAP_ADMIN_PASS
+        chk_var  LDAP_MANAGER_PASS
+        chk_var  LDAP_CYRUS_PASS
+        chk_var  LDAP_KOLAB_PASS
+        chk_var  MYSQL_ROOT_PASS
+        chk_var  MYSQL_KOLAB_PASS
+        chk_var  MYSQL_ROUNDCUBE_PASS
 
         #Fix apache symlinks
         rm -f /etc/httpd/modules && ln -s /usr/lib64/httpd/modules /etc/httpd/modules
@@ -527,46 +531,6 @@ postfix_milter()
     fi
 }
 
-print_passwords()
-{
-    cat << EOF
-=======================================================
-Please save your passwords:                            
-=======================================================
-
-Directory Manager
-login:          cn=Directory Manager
-pass:           $LDAP_MANAGER_PASS
-
-389 Admin
-login:          admin
-pass:           $LDAP_ADMIN_PASS
-
-Service accounts
-login:          pass:
-kolab-service   $LDAP_KOLAB_PASS
-cyrus-admin     $LDAP_CYRUS_PASS
-
-MySQL accounts
-login:          pass:
-root            $MYSQL_ROOT_PASS
-kolab           $MYSQL_KOLAB_PASS
-roundcube       $MYSQL_ROUNDCUBE_PASS
-
-_______________________________________________________
-EOF
-}
-
-print_dkim_keys()
-{
-    echo "_______________________________________________________"
-    echo
-    echo "Your DNS-record for your DKIM key:"
-    echo
-    cat /etc/opendkim/keys/$(hostname -s).txt
-    echo "_______________________________________________________"
-}
-
 stop_services()
 {
     echo "info:  stopping services"
@@ -609,7 +573,6 @@ start_services()
                                            link_dirs
 [ "$FIRST_SETUP" = true ]               && configure_kolab
 
-
 [ "$WEBSERVER" = "nginx" ]              && configure_nginx
 [ "$NGINX_CACHE" = true ]               && configure_nginx_cache
 [ "$SPAM_SIEVE" = true ]                && configure_spam_sieve
@@ -624,9 +587,6 @@ start_services()
 [ "$ROUNDCUBE_ZIPDOWNLOAD" = true ]     && roundcube_zipdownload
 [ "$ROUNDCUBE_TRASH" = true ]           && roundcube_trash_folder
 [ "$EXT_MILTER_ADDR" = true ]           && postfix_milter
-if [ "$FIRST_SETUP" = true ]; then
-                                          stop_services
-                                          print_passwords
-    [ $DKIM = true ]                   && print_dkim_keys
-fi
-                                          start_services
+[ "$FIRST_SETUP" = true ]               && stop_services
+
+                                           start_services
