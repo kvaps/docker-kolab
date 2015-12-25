@@ -558,7 +558,7 @@ start_services()
          /usr/bin/supervisord
 } 
 
-[ -d /data/etc/dirsrv/slapd-* ] && export FIRST_SETUP=true #Check for first setup
+[ -d /data/etc/dirsrv/slapd-* ] || export FIRST_SETUP=true #Check for first setup
 
                                            load_defaults
                                            set_timezone
