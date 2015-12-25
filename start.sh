@@ -6,7 +6,7 @@ random_pwd()
 }
 
 chk_var () {
-   var=$(sh -c "echo $(echo \$$1)")
+   eval var=\$$1
    [ -z "$var" ] && export "$1"="$2"
 }
 
@@ -280,7 +280,7 @@ EOF
 
 configure_ssl()
 {
-    if [ -f /etc/pki/tls/certs/$(hostname -f).crt ] ; then
+    if [ -f /etc/letsencrypt/live/$(hostname -f).crt ] ; then
         echo "info:  start configuring SSL"
 
         # Generate key and certificate
