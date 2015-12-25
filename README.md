@@ -1,18 +1,26 @@
-Kolab 3.4 in a Docker container
-===============================
+Kolab 3.4 in a Docker
+=====================
 
 This is my version of the Kolab for docker.
-Installation is supports automatic configuration **kolab**, **nginx**, **ssl**, **opendkim**, **amavis** and **fail2ban**
+Installation is supports automatic configuration **kolab**, **nginx**, **ssl**, **opendkim** and **fail2ban**
 
-Run
----
+Quick start
+-----------
 
+Run command:
 ```bash
 docker run \
     --name kolab \
     -h mail.example.org \
     -v /opt/kolab:/data:rw \
-    --env TZ=Europe/Moscow
+    -e TZ=Europe/Moscow \
+    -e LDAP_ADMIN_PASS=<password> \
+    -e LDAP_MANAGER_PASS=<password> \
+    -e LDAP_CYRUS_PASS=<password> \
+    -e LDAP_KOLAB_PASS=<password> \
+    -e MYSQL_ROOT_PASS=<password> \
+    -e MYSQL_KOLAB_PASS=<password> \
+    -e MYSQL_ROUNDCUBE_PASS=<password> \
     -p 80:80 \
     -p 443:443 \
     -p 25:25 \
@@ -23,7 +31,7 @@ docker run \
     -p 993:993 \
     -p 4190:4190 \
     --cap-add=NET_ADMIN \
-    -ti \
+    --entrypoint=/bin/bash \
     kvaps/kolab
 ```
 It should be noted that the `--cap-add=NET_ADMIN` option is necessary only for **Fail2ban**, if you do not plan to use **Fail2ban**, you can exclude it.
@@ -36,40 +44,19 @@ You can also more integrate Kolab to your system, simply replace `-v` options li
     -v /var/log/kolab:/data/var/log:rw \
 ```
 
-If it is the first run, you will see the settings page, make your changes and save it, installation will continue...
-*(You need to have the base knowledge of the [vi editor](http://google.com/#q=vi+editor))*
-
 Configuration
 -------------
 
 ### SSL-certificates
 
+Put your key and certificates to `/opt/kolab/etc/pki/tls/kolab`
+Alternative you can use [kvaps/letsencrypt-webroot](https://github.com/kvaps/docker-letsencrypt-webroot) image, 
+In this case, be sure to specify these options:
 ```bash
-
-# Go to tls folder of your container
-cd /opt/kolab/etc/pki/tls
-
-# Set the variable with your kolab hostname
-KOLAB_HOSTNAME='mail.example.org'
-
-# Write your keys
-vim private/${KOLAB_HOSTNAME}.key
-vim certs/${KOLAB_HOSTNAME}.crt
-vim certs/${KOLAB_HOSTNAME}-ca.pem
-
-# Create certificate bundles
-cat certs/${KOLAB_HOSTNAME}.crt private/${KOLAB_HOSTNAME}.key certs/${KOLAB_HOSTNAME}-ca.pem > private/${KOLAB_HOSTNAME}.bundle.pem
-cat certs/${KOLAB_HOSTNAME}.crt certs/${KOLAB_HOSTNAME}-ca.pem > certs/${KOLAB_HOSTNAME}.bundle.pem
-cat certs/${KOLAB_HOSTNAME}-ca.pem > certs/${KOLAB_HOSTNAME}.ca-chain.pem
-
-# Set access rights
-chown -R root:mail private
-chmod 750 private
-chmod 640 private/*
-
-# Add CA to system’s CA bundle
-cat certs/${KOLAB_HOSTNAME}-ca.pem >> certs/ca-bundle.crt
+    -e 'CERT_PATH=/etc/letsencrypt/live'
+    -e 'LE_RENEW_HOOK=docker restart @CONTAINER_NAME@' \
 ```
+*Note: Nginx in this image is already configured for use `/tmp/letsencrypt` as directory for letsencrypt checks*
 
 ### Available Configuration Parameters
 
@@ -87,6 +74,7 @@ Below is the complete list of available options that can be used to customize yo
   - **SPAM_SIEVE_TIMEOUT** : Sets how often to run a check of global sieve script for users. Defaults to `15m`.
   - **FAIL2BAN**: Enables Fail2Ban. Defaults to `true`.
   - **DKIM**: Enables DKIM signing. Defaults to `true`.
+  - **CERT_PATH**: Path to the certificates. Defaults to `true`.
 
 #### Set the passwords
 
