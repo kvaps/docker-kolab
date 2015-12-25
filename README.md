@@ -234,5 +234,3 @@ Just simple use:
 systemctl enable kolab@example.org
 systemctl start kolab@example.org
 ```
-
-For setup and manage container, can use [kolab-worker.sh](https://github.com/kvaps/docker-kolab/blob/master/kolab-worker.sh) script
