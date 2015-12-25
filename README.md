@@ -87,7 +87,7 @@ kolab:
 Configuration
 -------------
 
-### SSL-certificates
+#### SSL-certificates
 
 Put your key and certificates to `/opt/kolab/etc/pki/tls/kolab`
 Alternative you can use [kvaps/letsencrypt-webroot](https://github.com/kvaps/docker-letsencrypt-webroot) image, 
@@ -98,13 +98,13 @@ In this case, be sure to specify these options:
 ```
 *Note: Nginx in this image is already configured for use `/tmp/letsencrypt` as directory for letsencrypt checks*
 
-### Available Configuration Parameters
+#### Available Configuration Parameters
 
 *Please refer the docker run command options for the `--env-file` flag where you can specify all required environment variables in a single file. This will save you from writing a potentially long docker run command. Alternatively you can use docker-compose.*
 
 Below is the complete list of available options that can be used to customize your kolab installation.
 
-#### Basic options
+##### Basic options
 
   - **TZ**: Sets the timezone. Defaults to `UTC`.
   - **WEBSERVER**: Choose the backend. May be `apache` or `nginx`. Defaults to `nginx`.
@@ -116,7 +116,7 @@ Below is the complete list of available options that can be used to customize yo
   - **DKIM**: Enables DKIM signing. Defaults to `true`.
   - **CERT_PATH**: Path to the certificates. Defaults to `true`.
 
-#### Set the passwords
+##### Set the passwords
 
 By default passwords generates automatically and printing at the end of the installation script. You can specify the passwords you want to use.
 
@@ -128,7 +128,7 @@ By default passwords generates automatically and printing at the end of the inst
   - **MYSQL_KOLAB_PASS**: supply a password for the MySQL user 'kolab'. This password will be used by Kolab services, such as the Web Administration Panel. Defaults to `random`.
   - **MYSQL_ROUNDCUBE_PASS**: supply a password for the MySQL user 'roundcube'. This password will be used by the Roundcube webmail interface. Defaults to `random`.
 
-#### Advanced configuration
+##### Advanced configuration
 
   - **KOLAB_RCPT_POLICY**: Enables the Recipient policy. Defaults to `false`.
   - **KOLAB_DEFAULT_LOCALE**: Sets default locale for Kolab. Defaults to `en_US`.
@@ -140,12 +140,19 @@ By default passwords generates automatically and printing at the end of the inst
   - **ROUNDCUBE_ZIPDOWNLOAD**: Enables zipdownload plugin. Defaults to `true`.
   - **ROUNDCUBE_TRASH**: Sets how delete mails. May be `flag` or `trash`. Defaults to `trash`.
 
-#### Configuring another milter,
+##### Configuring another milter,
 
 This settings disables amavis with clamd and configures another milter
 
   - **EXT_MILTER_ADDR**: Sets the milter address and port. Example to `inet:rmilter:11339`.
   - **EXT_MILTER_PROTO**: Sets the milter protocol. Defaults to `4`.
+
+Multi-instances
+---------------
+
+I use [pipework](https://hub.docker.com/r/dreamcat4/pipework/) image for passthrough external ethernet cards into docker container.
+
+See [examples](https://github.com/dreamcat4/docker-images/blob/master/pipework/3.%20Examples.md), that's realy simple!
 
 Update notes
 ------------
@@ -186,91 +193,4 @@ if header :contains "X-Spam-Flag" "YES"
 EOF
 # Compile it
 /usr/lib/cyrus-imapd/sievec /data/var/lib/imap/sieve/global/default.script /data/var/lib/imap/sieve/global/default.bc
-```
-
-Systemd unit
-------------
-
-You can create a unit for systemd, which would run it as a service and use when startup
-
-```bash
-vi /etc/systemd/system/kolab.service
-```
-
-```ini
-[Unit]
-Description=Kolab Groupware
-After=docker.service
-Requires=docker.service
-
-[Service]
-Restart=always
-ExecStart=/usr/bin/docker start -a kolab
-ExecStop=/usr/bin/docker stop kolab
-
-[Install]
-WantedBy=multi-user.target
-```
-
-Now you can activate and start the container:
-```bash
-systemctl enable kolab
-systemctl start kolab
-```
-
-
-
-Multi-instances
----------------
-
-I use [pipework](https://github.com/jpetazzo/pipework) script for passthrough external ethernet cards into docker container
-
-I write such systemd-unit:
-```bash
-vi /etc/systemd/system/kolab@.service
-```
-```ini
-[Unit]
-Description=Kolab Groupware for %I
-After=docker.service
-Requires=docker.service
-
-[Service]
-EnvironmentFile=/etc/kolab-docker/%i
-Restart=always
-
-ExecStart=/bin/bash -c 'docker run --name ${DOCKER_NAME} -h ${DOCKER_HOSTNAME} -v ${DOCKER_VOLUME}:/data:rw ${DOCKER_OPTIONS} kvaps/kolab'
-ExecStartPost=/bin/bash -c ' \
-        pipework ${EXT_INTERFACE} -i eth1 ${DOCKER_NAME} ${EXT_ADDRESS}@${EXT_GATEWAY}; \
-        docker exec ${DOCKER_NAME} bash -c "${INT_ROUTE}"; \
-        docker exec ${DOCKER_NAME} bash -c "if ! [ \"${DNS_SERVER}\" = \"\" ] ; then echo nameserver ${DNS_SERVER} > /etc/resolv.conf ; fi" '
-
-ExecStop=/bin/bash -c 'docker stop -t 2 ${DOCKER_NAME} ; docker rm -f ${DOCKER_NAME}'
-
-[Install]
-WantedBy=multi-user.target
-```
-
-And this config for each instance:
-```bash
-vi /etc/kolab-docker/example.org
-```
-```bash
-DOCKER_HOSTNAME=mail.example.org
-DOCKER_NAME="kolab-$(echo $DOCKER_HOSTNAME | cut -d. -f 2-)"
-DOCKER_VOLUME="/opt/kolab-$(echo $DOCKER_HOSTNAME | cut -d. -f 2-)"
-DOCKER_OPTIONS='--env TZ=Europe/Moscow --cap-add=NET_ADMIN --link rmilter:rmilter -p 25:25 -p 389:389'
- 
-EXT_INTERFACE=eth2
-#EXT_ADDRESS='dhclient D2:84:9D:CA:F3:BC'
-EXT_ADDRESS='10.10.10.123/24'
-EXT_GATEWAY='10.10.10.1'
-DNS_SERVER='8.8.8.8'
- 
-INT_ROUTE='ip route add 192.168.1.0/24 via 172.17.42.1 dev eth0'
-```
-Just simple use:
-```bash
-systemctl enable kolab@example.org
-systemctl start kolab@example.org
 ```
