@@ -44,6 +44,8 @@ RUN sed -i "840s/\$this/\$me/g"  /usr/share/roundcubemail/program/lib/Roundcube/
 ADD service-wrapper.sh /bin/service-wrapper.sh
 ADD set_spam_sieve.sh /bin/set_spam_sieve.sh
 ADD configs/supervisord.conf /etc/supervisord.conf
+ADD configs/nginx/letsencrypt.conf /etc/nginx/letsencrypt.conf
+ADD configs/nginx/kolab.conf /etc/nginx/kolab.conf
 ADD configs/nginx/conf.d/default.conf /etc/nginx/conf.d/default.conf
 RUN rm -f /etc/php-fpm.d/www.conf
 ADD configs/php-fpm.d/* /etc/php-fpm.d/

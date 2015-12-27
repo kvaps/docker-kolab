@@ -17,7 +17,7 @@ load_defaults()
 {
     chk_var  TZ                    "utc"
     chk_var  WEBSERVER             "nginx"
-    chk_var  APACHE_HTTPS          true
+    chk_var  FORCE_HTTPS           false
     chk_var  NGINX_CACHE           false
     chk_var  SPAM_SIEVE            true
     chk_var  SPAM_SIEVE_TIMEOUT    "15m"
@@ -328,8 +328,26 @@ configure_certs()
         postconf -e smtpd_tls_CAfile=${CERT_PATH}/$(hostname -f)/chain.pem
 }
  
-configure_ssl()
+configure_force_https()
 {
+    if [ "$(grep -c 'RewriteRule ^(.*)$ https://%{HTTP_HOST}' /etc/httpd/conf/httpd.conf)" == "0" ] ; then
+    echo "info:  start configuring force https"
+
+    cat >> /etc/httpd/conf/httpd.conf << EOF
+
+<VirtualHost _default_:80>
+    RewriteEngine On
+    RewriteRule ^(.*)$ https://%{HTTP_HOST}\$1 [R=301,L]
+</VirtualHost>
+EOF
+
+    sed -i -z 's|include /etc/nginx/kolab.conf;|location / {\n        return 301 https://$server_name$request_uri;\n    }|' /etc/nginx/conf.d/default.conf
+
+    echo "info:  finished configuring force https"
+    else
+        echo "warn:  force https already configured, skipping..."
+    fi
+
     echo "info:  start configuring SSL"
     #Configure kolab-cli for SSL
     sed -r -i \
@@ -360,24 +378,6 @@ EOF
     fi
 
     echo "info:  finished configuring SSL"
-}
-
-configure_apache_ssl()
-{
-    if [ "$(grep -c 'RewriteRule ^(.*)$ https://%{HTTP_HOST}' /etc/httpd/conf/httpd.conf)" == "0" ] ; then
-    echo "info:  start configuring SSL by default in apache"
-
-    cat >> /etc/httpd/conf/httpd.conf << EOF
-
-<VirtualHost _default_:80>
-    RewriteEngine On
-    RewriteRule ^(.*)$ https://%{HTTP_HOST}\$1 [R=301,L]
-</VirtualHost>
-EOF
-    echo "info:  finished configuring SSL by default in apache"
-    else
-        echo "warn:  SSL by default in apache already configured, skipping..."
-    fi
 }
 
 configure_fail2ban()
@@ -572,8 +572,7 @@ start_services()
 [ "$NGINX_CACHE" = true ]               && configure_nginx_cache
 [ "$SPAM_SIEVE" = true ]                && configure_spam_sieve
                                            configure_certs
-[ "$FIRST_SETUP" = true ]               && configure_ssl
-[ "$APACHE_HTTPS" = true ]              && configure_apache_ssl
+[ "$FORCE_HTTPS" = true ]               && configure_force_https
 [ "$FAIL2BAN" = true ]                  && configure_fail2ban
 [ "$DKIM" = true ]                      && configure_dkim
 [ "$KOLAB_RCPT_POLICY" = false ]        && kolab_rcpt_policy_off
