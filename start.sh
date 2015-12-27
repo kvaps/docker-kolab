@@ -283,11 +283,12 @@ EOF
     fi
 }
 
-configure_ssl()
+configure_certs()
 {
-    if [ -d ${CERT_PATH}/$(hostname -f) ] ; then
-        echo "info:  start configuring SSL"
+    if [ ! -d ${CERT_PATH}/$(hostname -f) ] ; then
+        echo "info:  start generating certificate"
 
+        mkdir -p ${CERT_PATH}/$(hostname -f)
         # Generate key and certificate
         openssl req -new -newkey rsa:4096 -days 3650 -nodes -x509 \
                     -subj "/CN=$(hostname -f)" \
@@ -295,15 +296,15 @@ configure_ssl()
                     -out ${CERT_PATH}/$(hostname -f)/cert.pem
     
         touch ${CERT_PATH}/$(hostname -f)/chain.pem
+        cat ${CERT_PATH}/$(hostname -f)/cert.pem > ${CERT_PATH}/$(hostname -f)/fullchain.pem
     
-        # Add CA to system’s CA bundle
-        cat ${CERT_PATH}/$(hostname -f)/chain.pem >> /etc/pki/tls/certs/ca-bundle.crt
-
         # Set access rights
         chown -R root:mail ${CERT_PATH}/$(hostname -f)
         chmod 750 ${CERT_PATH}/$(hostname -f)
         chmod 640 ${CERT_PATH}/$(hostname -f)/*
         chmod 600 ${CERT_PATH}/$(hostname -f)/privkey.pem
+        echo "info:  generating certificate finished"
+    fi
     
         # Configure apache for SSL
         sed -i -e "/SSLCertificateFile /c\SSLCertificateFile ${CERT_PATH}/$(hostname -f)/cert.pem" /etc/httpd/conf.d/ssl.conf
@@ -325,39 +326,40 @@ configure_ssl()
         postconf -e smtpd_tls_key_file=${CERT_PATH}/$(hostname -f)/privkey.pem
         postconf -e smtpd_tls_cert_file=${CERT_PATH}/$(hostname -f)/cert.pem
         postconf -e smtpd_tls_CAfile=${CERT_PATH}/$(hostname -f)/chain.pem
+}
+ 
+configure_ssl()
+{
+    echo "info:  start configuring SSL"
+    #Configure kolab-cli for SSL
+    sed -r -i \
+          -e '/api_url/d' \
+          -e "s#\[kolab_wap\]#[kolab_wap]\napi_url = https://$(hostname -f)/kolab-webadmin/api#g" \
+          /etc/kolab/kolab.conf
     
-        #Configure kolab-cli for SSL
-        sed -r -i \
-              -e '/api_url/d' \
-              -e "s#\[kolab_wap\]#[kolab_wap]\napi_url = https://$(hostname -f)/kolab-webadmin/api#g" \
-              /etc/kolab/kolab.conf
+    #Configure Roundcube for SSL
+    sed -i -e 's/http:/https:/' /etc/roundcubemail/libkolab.inc.php
+    sed -i -e 's/http:/https:/' /etc/roundcubemail/kolab_files.inc.php
+    sed -i -e '/^?>/d' /etc/roundcubemail/config.inc.php
         
-        #Configure Roundcube for SSL
-        sed -i -e 's/http:/https:/' /etc/roundcubemail/libkolab.inc.php
-        sed -i -e 's/http:/https:/' /etc/roundcubemail/kolab_files.inc.php
-        sed -i -e '/^?>/d' /etc/roundcubemail/config.inc.php
-            
-        # Tell the webclient the SSL iRony URLs for CalDAV and CardDAV
-        if [ "$(grep -c "calendar_caldav_url" /etc/roundcubemail/config.inc.php)" == "0" ] ; then
-        cat >> /etc/roundcubemail/config.inc.php << EOF
+    # Tell the webclient the SSL iRony URLs for CalDAV and CardDAV
+    if [ "$(grep -c "calendar_caldav_url" /etc/roundcubemail/config.inc.php)" == "0" ] ; then
+    cat >> /etc/roundcubemail/config.inc.php << EOF
 # caldav/webdav
 \$config['calendar_caldav_url']             = "https://%h/iRony/calendars/%u/%i";
 \$config['kolab_addressbook_carddav_url']   = 'https://%h/iRony/addressbooks/%u/%i';
 EOF
-        fi
-    
-        if [ "$(grep -c "force_https" /etc/roundcubemail/config.inc.php)" == "0" ] ; then
-        # Redirect all http traffic to https
-        cat >> /etc/roundcubemail/config.inc.php << EOF
+    fi
+
+    if [ "$(grep -c "force_https" /etc/roundcubemail/config.inc.php)" == "0" ] ; then
+    # Redirect all http traffic to https
+    cat >> /etc/roundcubemail/config.inc.php << EOF
 # Force https redirect for http requests
 \$config['force_https'] = true;
 EOF
-        fi
-
-        echo "info:  finished configuring SSL"
-    else
-        echo "warn:  SSL already configured, skipping..."
     fi
+
+    echo "info:  finished configuring SSL"
 }
 
 configure_apache_ssl()
@@ -569,7 +571,8 @@ start_services()
 [ "$WEBSERVER" = "nginx" ]              && configure_nginx
 [ "$NGINX_CACHE" = true ]               && configure_nginx_cache
 [ "$SPAM_SIEVE" = true ]                && configure_spam_sieve
-                                           configure_ssl
+                                           configure_certs
+[ "$FIRST_SETUP" = true ]               && configure_ssl
 [ "$APACHE_HTTPS" = true ]              && configure_apache_ssl
 [ "$FAIL2BAN" = true ]                  && configure_fail2ban
 [ "$DKIM" = true ]                      && configure_dkim
