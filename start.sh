@@ -341,7 +341,8 @@ configure_force_https()
 </VirtualHost>
 EOF
 
-    sed -i -z 's|include /etc/nginx/kolab.conf;|location / {\n        return 301 https://$server_name$request_uri;\n    }|' /etc/nginx/conf.d/default.conf
+    #sed -i -z 's|include /etc/nginx/kolab.conf;|location / {\n        return 301 https://$server_name$request_uri;\n    }|' /etc/nginx/conf.d/default.conf
+    sed -i -e '10s|include /etc/nginx/kolab.conf;|location / {\n        return 301 https://$server_name$request_uri;\n    }|' /etc/nginx/conf.d/default.conf
 
     echo "info:  finished configuring force https"
     else
