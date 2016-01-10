@@ -497,7 +497,7 @@ roundcube_trash_folder()
 
 postfix_milter()
 {
-    if [ "$(grep "smtpd_milters" /etc/postfix/main.cf | grep -cv localhost)" != "0" ] ; then
+    if [ "$(grep "smtpd_milters" /etc/postfix/main.cf | grep -cv localhost)" == "0" ] ; then
 
         echo "info:  start configuring another milter"
     
@@ -582,7 +582,7 @@ start_services()
 [ ! -z "$ROUNDCUBE_SKIN" ]              && roundcube_skin
 [ "$ROUNDCUBE_ZIPDOWNLOAD" = true ]     && roundcube_zipdownload
 [ "$ROUNDCUBE_TRASH" = true ]           && roundcube_trash_folder
-[ "$EXT_MILTER_ADDR" = true ]           && postfix_milter
+[ ! -z "$EXT_MILTER_ADDR" ]             && postfix_milter
 [ "$FIRST_SETUP" = true ]               && stop_services
 
                                            start_services
