@@ -7,7 +7,6 @@ This is Kolab image for docker.
 
 Installation is supports automatic configuration **kolab**, **nginx**, **opendkim**, **fail2ban** and more...
 
-**Links:**
   - [GitHub](https://github.com/kvaps/docker-kolab)
   - [DockerHub](https://hub.docker.com/r/kvaps/kolab/)
 
