@@ -3,8 +3,13 @@ Kolab 3.4 in a Docker
 
 ![Kolab Logo](https://github.com/kvaps/docker-kolab/blob/img/kolab.png?raw=true)
 
-This is my version of the Kolab for docker.
-Installation is supports automatic configuration **kolab**, **nginx**, **ssl**, **opendkim** and **fail2ban**
+This is Kolab image for docker.
+
+Installation is supports automatic configuration **kolab**, **nginx**, **opendkim**, **fail2ban** and more...
+
+**Links:**
+  - [GitHub](https://github.com/kvaps/docker-kolab)
+  - [DockerHub](https://hub.docker.com/r/kvaps/kolab/)
 
 Quick start
 -----------
