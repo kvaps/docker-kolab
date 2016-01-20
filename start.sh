@@ -302,7 +302,6 @@ configure_certs()
         chown -R root:mail ${CERT_PATH}/$(hostname -f)
         chmod 750 ${CERT_PATH}/$(hostname -f)
         chmod 640 ${CERT_PATH}/$(hostname -f)/*
-        chmod 600 ${CERT_PATH}/$(hostname -f)/privkey.pem
         echo "info:  generating certificate finished"
     fi
     
