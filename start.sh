@@ -286,6 +286,11 @@ EOF
 configure_certs()
 {
     if [ ! -d ${CERT_PATH}/$(hostname -f) ] ; then
+        echo "warn:  no certificates found in $CERT_PATH fallback to /etc/pki/tls/kolab"
+        export CERT_PATH="/etc/pki/tls/kolab"
+    fi
+
+    if [ ! -d ${CERT_PATH}/$(hostname -f) ] ; then
         echo "info:  start generating certificate"
 
         mkdir -p ${CERT_PATH}/$(hostname -f)
