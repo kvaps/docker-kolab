@@ -141,6 +141,7 @@ By default passwords generates automatically and printing at the end of the inst
   - **MAX_MEMORY_SIZE**: Sets the maximum memory size for php. Defaults to `256M`.
   - **MAX_FILE_SIZE**: Sets the max upload size. Defaults to `30M`.
   - **MAX_MAIL_SIZE**: Sets the max letter size. Defaults to `30M`.
+  - **MAX_MAILBOX_SIZE**: Sets the posfix mailbox size. Defaults to `50M`.
   - **MAX_BODY_SIZE**: Sets the the max body size for nginx. Defaults to `50M`.
   - **ROUNDCUBE_SKIN**: Sets the skin for roundcube, may be `larry` or `chameleon`. Defaults to `chameleon`.
   - **ROUNDCUBE_ZIPDOWNLOAD**: Enables zipdownload plugin. Defaults to `true`.

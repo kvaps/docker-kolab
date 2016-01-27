@@ -28,6 +28,7 @@ load_defaults()
     chk_var  MAX_MEMORY_SIZE       "256M"
     chk_var  MAX_FILE_SIZE         "30M"
     chk_var  MAX_MAIL_SIZE         "30M"
+    chk_var  MAX_MAILBOX_SIZE      "50M"
     chk_var  MAX_BODY_SIZE         "50M"
     chk_var  ROUNDCUBE_SKIN        "chameleon"
     chk_var  ROUNDCUBE_ZIPDOWNLOAD true
@@ -477,7 +478,9 @@ configure_size()
 
     # Convert megabytes to bytes for postfix
     if [[ $MAX_MAIL_SIZE == *"M" ]] ;  then MAX_MAIL_SIZE=$[($(echo $MAX_MAIL_SIZE | sed 's/[^0-9]//g'))*1024*1024] ; fi
+    if [[ $MAX_MAILBOX_SIZE == *"M" ]] ;  then MAX_MAILBOX_SIZE=$[($(echo $MAX_MAILBOX_SIZE | sed 's/[^0-9]//g'))*1024*1024] ; fi
     postconf -e message_size_limit=$MAX_MAIL_SIZE    
+    postconf -e mailbox_size_limit=$MAX_MAILBOX_SIZE
     echo "info:  finished configuring sizes"
 }
 
