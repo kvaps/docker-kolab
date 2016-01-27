@@ -217,6 +217,8 @@ configure_nginx()
         sed -i --follow-symlinks '/^;.*nginx/s/^;//' /etc/supervisord.conf
         sed -i --follow-symlinks '/^;.*php-fpm/s/^;//' /etc/supervisord.conf
 
+        sed -i -e "/server_name /c\    server_name $(hostname -f);" /etc/nginx/conf.d/default.conf
+
         echo "info:  finished configuring nginx"
     else
         echo "warn:  nginx already configured, skipping..."
