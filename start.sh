@@ -287,51 +287,57 @@ EOF
 
 configure_certs()
 {
-    if [ ! -f ${CERT_PATH}/*/privkey.pem ] ; then
+    certificate_path=`echo ${CERT_PATH}/*/cert.pem | awk '{print $1}'`
+    privkey_path=`echo ${CERT_PATH}/*/privkey.pem | awk '{print $1}'`
+    chain_path=`echo ${CERT_PATH}/*/chain.pem | awk '{print $1}'`
+    fullchain_path=`echo ${CERT_PATH}/*/fullchain.pem | awk '{print $1}'`
+
+    if [ ! -f $certificate_path ] ; then
         echo "warn:  no certificates found in $CERT_PATH fallback to /etc/pki/tls/kolab"
         export CERT_PATH="/etc/pki/tls/kolab"
     fi
 
-    if [ ! -d ${CERT_PATH}/$(hostname -f) ] ; then
+    if [ ! -f $certificate_path ] ; then
         echo "info:  start generating certificate"
 
         mkdir -p ${CERT_PATH}/$(hostname -f)
         # Generate key and certificate
         openssl req -new -newkey rsa:4096 -days 3650 -nodes -x509 \
                     -subj "/CN=$(hostname -f)" \
-                    -keyout ${CERT_PATH}/$(hostname -f)/privkey.pem \
-                    -out ${CERT_PATH}/$(hostname -f)/cert.pem
+                    -keyout $privkey_path \
+                    -out $certificate_path
     
-        touch ${CERT_PATH}/$(hostname -f)/chain.pem
-        cat ${CERT_PATH}/$(hostname -f)/cert.pem > ${CERT_PATH}/$(hostname -f)/fullchain.pem
+        touch $chain_path
+        cat $certificate_path > $fullchain_path
     
-        # Set access rights
-        chown -R root:mail ${CERT_PATH}/$(hostname -f)
-        chmod 750 ${CERT_PATH}/$(hostname -f)
-        chmod 640 ${CERT_PATH}/$(hostname -f)/*
         echo "info:  generating certificate finished"
     fi
+
+        # Set access rights
+        chown -R root:mail ${CERT_PATH}/*
+        chmod 750 ${CERT_PATH}/*
+        chmod 640 ${CERT_PATH}/*/*
     
         # Configure apache for SSL
-        sed -i -e "/SSLCertificateFile /c\SSLCertificateFile ${CERT_PATH}/$(hostname -f)/cert.pem" /etc/httpd/conf.d/ssl.conf
-        sed -i -e "/SSLCertificateKeyFile /c\SSLCertificateKeyFile ${CERT_PATH}/$(hostname -f)/privkey.pem" /etc/httpd/conf.d/ssl.conf
-        sed -i -e "/SSLCertificateChainFile /c\SSLCertificateChainFile ${CERT_PATH}/$(hostname -f)/chain.pem" /etc/httpd/conf.d/ssl.conf
+        sed -i -e "/SSLCertificateFile /c\SSLCertificateFile $certificate_path" /etc/httpd/conf.d/ssl.conf
+        sed -i -e "/SSLCertificateKeyFile /c\SSLCertificateKeyFile $privkey_path" /etc/httpd/conf.d/ssl.conf
+        sed -i -e "/SSLCertificateChainFile /c\SSLCertificateChainFile $chain_path" /etc/httpd/conf.d/ssl.conf
     
         # Configuration nginx for SSL
-        sed -i -e "/ssl_certificate /c\    ssl_certificate ${CERT_PATH}/$(hostname -f)/fullchain.pem;" /etc/nginx/conf.d/default.conf
-        sed -i -e "/ssl_certificate_key/c\    ssl_certificate_key ${CERT_PATH}/$(hostname -f)/privkey.pem;" /etc/nginx/conf.d/default.conf
+        sed -i -e "/ssl_certificate /c\    ssl_certificate $fullchain_path;" /etc/nginx/conf.d/default.conf
+        sed -i -e "/ssl_certificate_key/c\    ssl_certificate_key $privkey_path;" /etc/nginx/conf.d/default.conf
     
         #Configure Cyrus for SSL
         sed -r -i --follow-symlinks \
-            -e "s|^tls_server_cert:.*|tls_server_cert: ${CERT_PATH}/$(hostname -f)/cert.pem|g" \
-            -e "s|^tls_server_key:.*|tls_server_key: ${CERT_PATH}/$(hostname -f)/privkey.pem|g" \
-            -e "s|^tls_server_ca_file:.*|tls_server_ca_file: ${CERT_PATH}/$(hostname -f)/chain.pem|g" \
+            -e "s|^tls_server_cert:.*|tls_server_cert: $certificate_path|g" \
+            -e "s|^tls_server_key:.*|tls_server_key: $privkey_path|g" \
+            -e "s|^tls_server_ca_file:.*|tls_server_ca_file: $chain_path|g" \
             /etc/imapd.conf
         
         #Configure Postfix for SSL
-        postconf -e smtpd_tls_key_file=${CERT_PATH}/$(hostname -f)/privkey.pem
-        postconf -e smtpd_tls_cert_file=${CERT_PATH}/$(hostname -f)/cert.pem
-        postconf -e smtpd_tls_CAfile=${CERT_PATH}/$(hostname -f)/chain.pem
+        postconf -e smtpd_tls_key_file=$privkey_path
+        postconf -e smtpd_tls_cert_file=$certificate_path
+        postconf -e smtpd_tls_CAfile=$chain_path
 }
  
 configure_force_https()
