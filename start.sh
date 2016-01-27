@@ -285,7 +285,7 @@ EOF
 
 configure_certs()
 {
-    if [ ! -d ${CERT_PATH}/$(hostname -f) ] ; then
+    if [ ! -f ${CERT_PATH}/*/privkey.pem ] ; then
         echo "warn:  no certificates found in $CERT_PATH fallback to /etc/pki/tls/kolab"
         export CERT_PATH="/etc/pki/tls/kolab"
     fi
