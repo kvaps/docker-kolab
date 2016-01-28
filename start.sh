@@ -317,7 +317,7 @@ configure_certs()
         # Set access rights
         chown -R root:mail ${domain_cers}
         chmod 750 ${domain_cers}
-        chmod 640 ${domain_cers}
+        chmod 640 ${domain_cers}/*
 
         echo "info:  generating certificate finished"
     fi
