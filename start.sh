@@ -402,6 +402,9 @@ configure_fail2ban()
     if [ "$(grep -c "^[^;]*fail2ban" /etc/supervisord.conf)" == "0" ] ; then
         echo "info:  start configuring Fail2ban"
 
+        touch /var/log/kolab-syncroton/userlogins
+        touch /var/log/chwala/userlogins
+
         # Uncoment fail2ban
         sed -i --follow-symlinks '/^;.*fail2ban/s/^;//' /etc/supervisord.conf
 
