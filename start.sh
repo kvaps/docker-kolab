@@ -17,7 +17,7 @@ load_defaults()
 {
     chk_var  TZ                    "utc"
     chk_var  WEBSERVER             "nginx"
-    chk_var  FORCE_HTTPS           false
+    chk_var  FORCE_HTTPS           true
     chk_var  NGINX_CACHE           false
     chk_var  SPAM_SIEVE            true
     chk_var  SPAM_SIEVE_TIMEOUT    "15m"

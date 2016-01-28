@@ -114,7 +114,7 @@ Below is the complete list of available options that can be used to customize yo
 
   - **TZ**: Sets the timezone. Defaults to `UTC`.
   - **WEBSERVER**: Choose the backend. May be `apache` or `nginx`. Defaults to `nginx`.
-  - **FORCE_HTTPS** Sets webserver for force redirect to https. Defaults to `false`.
+  - **FORCE_HTTPS** Sets webserver for force redirect to https. Defaults to `true`.
   - **NGINX_CACHE** Enable nginx and fastcgi cacheing. Defaults to `false`.
   - **SPAM_SIEVE**: Sets the global sieve script to place mail marked as spam into Spam folder. Defaults to `true`.
   - **SPAM_SIEVE_TIMEOUT** : Sets how often to run a check of global sieve script for users. Defaults to `15m`.
