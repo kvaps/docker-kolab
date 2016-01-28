@@ -296,7 +296,7 @@ configure_certs()
         domain_cers=`echo ${CERT_PATH}/* | awk '{print $1}'`
     fi
 
-    certificate_path=${domain_cers}/privkey.pem
+    certificate_path=${domain_cers}/cert.pem
     privkey_path=${domain_cers}/privkey.pem
     chain_path=${domain_cers}/chain.pem
     fullchain_path=${domain_cers}/fullchain.pem
