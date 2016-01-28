@@ -166,18 +166,9 @@ Update notes
 
 For update from previous versions of my docker image, please follow these simple steps:
 
-  - Run container with `--entrypoint=/bin/bash` option:
-```bash
-docker run \
-    -v /opt/kolab:/data:rw \
-    -ti --rm\
-    --entrypoint=/bin/bash \
-    kvaps/kolab
-```
+  - 2015-11-03: Update supervisord config:
 
-  - Update supervisord config:
 ```bash
-
 # Сheck which services is startup (not commented)
 cat /data/etc/supervisord.conf
 # Make the same
@@ -186,7 +177,9 @@ vi /etc/supervisord.conf
 cp -f /etc/supervisord.conf /data/etc/supervisord.conf
 ```
 
-  - If you have not default.bc script:
+
+
+  - 2015-01-24: If you have not default.bc script:
 
 ```bash
 # Create default sieve script
