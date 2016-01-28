@@ -288,20 +288,24 @@ EOF
 
 configure_certs()
 {
-    certificate_path=`echo ${CERT_PATH}/*/cert.pem | awk '{print $1}'`
-    privkey_path=`echo ${CERT_PATH}/*/privkey.pem | awk '{print $1}'`
-    chain_path=`echo ${CERT_PATH}/*/chain.pem | awk '{print $1}'`
-    fullchain_path=`echo ${CERT_PATH}/*/fullchain.pem | awk '{print $1}'`
-
-    if [ ! -f $certificate_path ] ; then
+    if [ ! -d ${CERT_PATH}/* ] ; then
         echo "warn:  no certificates found in $CERT_PATH fallback to /etc/pki/tls/kolab"
         export CERT_PATH="/etc/pki/tls/kolab"
     fi
 
-    if [ ! -f $certificate_path ] ; then
+    if [ ! -d ${CERT_PATH}/* ] ; then
+        echo "info:  creating ${CERT_PATH}/$(hostname -f)"
+        mkdir -p ${CERT_PATH}/$(hostname -f)
+    fi
+
+    certificate_path=`echo ${CERT_PATH}/*/privkey.pem | awk '{print $1}'`
+    privkey_path=`echo ${CERT_PATH}/*/privkey.pem | awk '{print $1}'`
+    chain_path=`echo ${CERT_PATH}/*/chain.pem | awk '{print $1}'`
+    fullchain_path=`echo ${CERT_PATH}/*/fullchain.pem | awk '{print $1}'`
+
+    if [ ! -d ${CERT_PATH}/* ] ; then
         echo "info:  start generating certificate"
 
-        mkdir -p ${CERT_PATH}/$(hostname -f)
         # Generate key and certificate
         openssl req -new -newkey rsa:4096 -days 3650 -nodes -x509 \
                     -subj "/CN=$(hostname -f)" \
