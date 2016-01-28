@@ -291,20 +291,19 @@ configure_certs()
     if [ ! -d ${CERT_PATH}/* ] ; then
         echo "warn:  no certificates found in $CERT_PATH fallback to /etc/pki/tls/kolab"
         export CERT_PATH="/etc/pki/tls/kolab"
+        domain_cers=${CERT_PATH}/$(hostname -f)
+    else
+        domain_cers=`echo ${CERT_PATH}/* | awk '{print $1}'`
     fi
 
-    if [ ! -d ${CERT_PATH}/* ] ; then
-        echo "info:  creating ${CERT_PATH}/$(hostname -f)"
-        mkdir -p ${CERT_PATH}/$(hostname -f)
-    fi
+    certificate_path=${domain_cers}/privkey.pem
+    privkey_path=${domain_cers}/privkey.pem
+    chain_path=${domain_cers}/chain.pem
+    fullchain_path=${domain_cers}/fullchain.pem
 
-    certificate_path=`echo ${CERT_PATH}/*/privkey.pem | awk '{print $1}'`
-    privkey_path=`echo ${CERT_PATH}/*/privkey.pem | awk '{print $1}'`
-    chain_path=`echo ${CERT_PATH}/*/chain.pem | awk '{print $1}'`
-    fullchain_path=`echo ${CERT_PATH}/*/fullchain.pem | awk '{print $1}'`
-
-    if [ ! -d ${CERT_PATH}/* ] ; then
+    if [ ! -f "$certificate_path" ] || [ ! -f "$privkey_path" ] ; then
         echo "info:  start generating certificate"
+        mkdir -p ${domain_cers}
 
         # Generate key and certificate
         openssl req -new -newkey rsa:4096 -days 3650 -nodes -x509 \
@@ -315,13 +314,13 @@ configure_certs()
         touch $chain_path
         cat $certificate_path > $fullchain_path
     
+        # Set access rights
+        chown -R root:mail ${domain_cers}
+        chmod 750 ${domain_cers}
+        chmod 640 ${domain_cers}
+
         echo "info:  generating certificate finished"
     fi
-
-        # Set access rights
-        chown -R root:mail ${CERT_PATH}/*
-        chmod 750 ${CERT_PATH}/*
-        chmod 640 ${CERT_PATH}/*/*
     
         # Configure apache for SSL
         sed -i -e "/SSLCertificateFile /c\SSLCertificateFile $certificate_path" /etc/httpd/conf.d/ssl.conf
