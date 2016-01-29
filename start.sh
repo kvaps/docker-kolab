@@ -311,9 +311,6 @@ configure_certs()
                     -keyout $privkey_path \
                     -out $certificate_path
     
-        touch $chain_path
-        cat $certificate_path > $fullchain_path
-    
         # Set access rights
         chown -R root:mail ${domain_cers}
         chmod 750 ${domain_cers}
@@ -322,26 +319,44 @@ configure_certs()
         echo "info:  generating certificate finished"
     fi
     
-        # Configure apache for SSL
-        sed -i -e "/SSLCertificateFile /c\SSLCertificateFile $certificate_path" /etc/httpd/conf.d/ssl.conf
-        sed -i -e "/SSLCertificateKeyFile /c\SSLCertificateKeyFile $privkey_path" /etc/httpd/conf.d/ssl.conf
+    # Configure apache for SSL
+    sed -i -e "/SSLCertificateFile /c\SSLCertificateFile $certificate_path" /etc/httpd/conf.d/ssl.conf
+    sed -i -e "/SSLCertificateKeyFile /c\SSLCertificateKeyFile $privkey_path" /etc/httpd/conf.d/ssl.conf
+    if [ -f "$chain_path" ]; then
         sed -i -e "/SSLCertificateChainFile /c\SSLCertificateChainFile $chain_path" /etc/httpd/conf.d/ssl.conf
+    else
+        sed -i -e "/SSLCertificateChainFile/d" /etc/httpd/conf.d/ssl.conf
+    fi
     
-        # Configuration nginx for SSL
+    # Configuration nginx for SSL
+    if [ -f "$fullchain_path" ]; then
         sed -i -e "/ssl_certificate /c\    ssl_certificate $fullchain_path;" /etc/nginx/conf.d/default.conf
-        sed -i -e "/ssl_certificate_key/c\    ssl_certificate_key $privkey_path;" /etc/nginx/conf.d/default.conf
+    else
+        sed -i -e "/ssl_certificate /c\    ssl_certificate $certificate_path;" /etc/nginx/conf.d/default.conf
+    fi
+    sed -i -e "/ssl_certificate_key/c\    ssl_certificate_key $privkey_path;" /etc/nginx/conf.d/default.conf
     
-        #Configure Cyrus for SSL
-        sed -r -i --follow-symlinks \
-            -e "s|^tls_server_cert:.*|tls_server_cert: $certificate_path|g" \
-            -e "s|^tls_server_key:.*|tls_server_key: $privkey_path|g" \
-            -e "s|^tls_server_ca_file:.*|tls_server_ca_file: $chain_path|g" \
-            /etc/imapd.conf
+    #Configure Cyrus for SSL
+    sed -r -i --follow-symlinks \
+        -e "s|^tls_server_cert:.*|tls_server_cert: $certificate_path|g" \
+        -e "s|^tls_server_key:.*|tls_server_key: $privkey_path|g" \
+        /etc/imapd.conf
+
+    if [ -f "$chain_path" ]; then
+         sed -i --follow-symlinks -e "s|^tls_server_ca_file:.*|tls_server_ca_file: $chain_path|g" /etc/imapd.conf
+    else
+        sed -i --follow-symlinks -e "/^tls_server_ca_file/d" /etc/httpd/conf.d/ssl.conf
+    fi
         
-        #Configure Postfix for SSL
-        postconf -e smtpd_tls_key_file=$privkey_path
-        postconf -e smtpd_tls_cert_file=$certificate_path
+    #Configure Postfix for SSL
+    postconf -e smtpd_tls_key_file=$privkey_path
+    postconf -e smtpd_tls_cert_file=$certificate_path
+    if [ -f "$chain_path" ]; then
         postconf -e smtpd_tls_CAfile=$chain_path
+    else
+        postconf -e smtpd_tls_CAfile=
+    fi
+
 }
  
 configure_force_https()
