@@ -39,6 +39,11 @@ RUN echo password | saslpasswd2 sasldb2 && chown cyrus:saslauth /etc/sasldb2
 # fix: http://trac.roundcube.net/ticket/1490424
 RUN sed -i "840s/\$this/\$me/g"  /usr/share/roundcubemail/program/lib/Roundcube/rcube_ldap.php 
 
+# fix permissions for amavis and clam
+RUN sed -i 's|"/var/spool/amavisd/clamd.sock"|"127.0.0.1:3310"|' /etc/amavisd/amavisd.conf \
+ && usermod -a -G clam -G amavis clam \
+ && usermod -a -G clam -G amavis amavis
+
 # Add config and setup script, run it
 ADD service-wrapper.sh /bin/service-wrapper.sh
 ADD set_spam_sieve.sh /bin/set_spam_sieve.sh
