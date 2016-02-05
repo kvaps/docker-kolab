@@ -288,7 +288,7 @@ EOF
 
 configure_certs()
 {
-    if [ ! -d ${CERT_PATH}/* ] ; then
+    if [ `find $CERT_PATH -prune -empty` ] ; then
         echo "warn:  no certificates found in $CERT_PATH fallback to /etc/pki/tls/kolab"
         export CERT_PATH="/etc/pki/tls/kolab"
         domain_cers=${CERT_PATH}/$(hostname -f)
@@ -320,13 +320,13 @@ configure_certs()
     fi
     
     # Configure apache for SSL
-    sed -i -e "/SSLCertificateFile /c\SSLCertificateFile $certificate_path" /etc/httpd/conf.d/ssl.conf
-    sed -i -e "/SSLCertificateKeyFile /c\SSLCertificateKeyFile $privkey_path" /etc/httpd/conf.d/ssl.conf
+    sed -i -e "/[^#]SSLCertificateFile /c\SSLCertificateFile $certificate_path" /etc/httpd/conf.d/ssl.conf
+    sed -i -e "/[^#]SSLCertificateKeyFile /c\SSLCertificateKeyFile $privkey_path" /etc/httpd/conf.d/ssl.conf
     if [ -f "$chain_path" ]; then
-        if grep -q SSLCertificateChainFile /etc/httpd/conf.d/ssl.conf ; then
-            sed -i -e "/SSLCertificateChainFile /c\SSLCertificateChainFile $chain_path" /etc/httpd/conf.d/ssl.conf
+        if `sed 's/#.*$//g' /etc/httpd/conf.d/ssl.conf | grep -q SSLCertificateChainFile` ; then
+            sed -e "/[^#]*SSLCertificateChainFile: /cSSLCertificateChainFile: $chain_path" /etc/httpd/conf.d/ssl.conf
         else
-            sed -i -e "/SSLCertificateChainFile/a/SSLCertificateChainFile/d: $chain_path" /etc/httpd/conf.d/ssl.conf 
+            sed -i -e "/[^#]*SSLCertificateFile/aSSLCertificateChainFile: $chain_path" /etc/httpd/conf.d/ssl.conf 
         fi
     else
         sed -i -e "/SSLCertificateChainFile/d" /etc/httpd/conf.d/ssl.conf
