@@ -594,6 +594,7 @@ stop_services()
 start_services()
 {
          echo "info:  Starting services"
+         crond
          /usr/bin/supervisord
 } 
 
