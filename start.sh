@@ -595,6 +595,7 @@ start_services()
 {
          echo "info:  Starting services"
          crond
+         tail -f -n 0 /var/log/maillog &
          /usr/bin/supervisord
 } 
 
