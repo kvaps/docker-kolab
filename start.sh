@@ -323,7 +323,11 @@ configure_certs()
     sed -i -e "/SSLCertificateFile /c\SSLCertificateFile $certificate_path" /etc/httpd/conf.d/ssl.conf
     sed -i -e "/SSLCertificateKeyFile /c\SSLCertificateKeyFile $privkey_path" /etc/httpd/conf.d/ssl.conf
     if [ -f "$chain_path" ]; then
-        sed -i -e "/SSLCertificateChainFile /c\SSLCertificateChainFile $chain_path" /etc/httpd/conf.d/ssl.conf
+        if grep -q SSLCertificateChainFile /etc/httpd/conf.d/ssl.conf ; then
+            sed -i -e "/SSLCertificateChainFile /c\SSLCertificateChainFile $chain_path" /etc/httpd/conf.d/ssl.conf
+        else
+            sed -i -e "/SSLCertificateChainFile/a/SSLCertificateChainFile/d: $chain_path" /etc/httpd/conf.d/ssl.conf 
+        fi
     else
         sed -i -e "/SSLCertificateChainFile/d" /etc/httpd/conf.d/ssl.conf
     fi
@@ -343,7 +347,11 @@ configure_certs()
         /etc/imapd.conf
 
     if [ -f "$chain_path" ]; then
-         sed -i --follow-symlinks -e "s|^tls_server_ca_file:.*|tls_server_ca_file: $chain_path|g" /etc/imapd.conf
+        if grep -q tls_server_ca_file /etc/imapd.conf ; then
+            sed -i --follow-symlinks -e "s|^tls_server_ca_file:.*|tls_server_ca_file: $chain_path|g" /etc/imapd.conf
+        else
+            sed -i --follow-symlinks -e "/tls_server_cert/atls_server_ca_file: $chain_path" /etc/imapd.conf
+        fi
     else
         sed -i --follow-symlinks -e "/^tls_server_ca_file/d" /etc/httpd/conf.d/ssl.conf
     fi
