@@ -427,6 +427,7 @@ configure_fail2ban()
 
         touch /var/log/kolab-syncroton/userlogins
         touch /var/log/chwala/userlogins
+        touch /var/log/iRony/userlogins
 
         # Uncoment fail2ban
         sed -i --follow-symlinks '/^;.*fail2ban/s/^;//' /etc/supervisord.conf

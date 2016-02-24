@@ -18,6 +18,8 @@ Run command:
 docker run \
     --name kolab \
     -h mail.example.org \
+    -v /etc/localtime:/etc/localtime:ro \
+    -v /lib/modules:/lib/modules:ro \
     -v /opt/kolab:/data:rw \
     -e TZ=Europe/Moscow \
     -e LDAP_ADMIN_PASS=<password> \
@@ -40,7 +42,7 @@ docker run \
     --entrypoint=/bin/bash \
     kvaps/kolab
 ```
-It should be noted that the `--cap-add=NET_ADMIN` option is necessary only for **Fail2ban**, if you do not plan to use **Fail2ban**, you can exclude it.
+It should be noted that the `--cap-add=NET_ADMIN` and `-v /lib/modules:/lib/modules:ro` option is necessary only for **Fail2ban**, if you do not plan to use **Fail2ban**, you can exclude it.
 
 You can also more integrate Kolab to your system, simply replace `-v` options like this:
 ```bash
@@ -63,6 +65,7 @@ kolab:
   domainname: example.org
   volumes:
     - /etc/localtime:/etc/localtime:ro
+    - /lib/modules:/lib/modules:ro
     - ./kolab:/data:rw
   environment:
     - TZ=Europe/Moscow
