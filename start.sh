@@ -280,6 +280,9 @@ EOF
         # Uncoment set_default_sieve
         sed -i --follow-symlinks '/^;.*set_default_sieve/s/^;//' /etc/supervisord.conf
 
+        # Set domain name
+        sed -r -i "s/^\\\$mydomain = '[^']*';/\\\$mydomain = '$(hostname -d)';/" /etc/amavisd/amavisd.conf
+
         echo "info:  finished configuring amavis"
     else
         echo "warn:  spam sieve already configured, skipping..."
