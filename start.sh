@@ -520,7 +520,7 @@ configure_size()
 roundcube_skin()
 {
     echo "info:  start configuring roundcube skin"
-    sed -i "s/\$config\['skin'\] = '.*';/\$config\['$ROUNDCUBE_SKIN'\] = 'larry';/g" /etc/roundcubemail/config.inc.php
+    sed -i -r "s/^\\s*(\\\$config\\[['\"]skin['\"]\\])\\s*=[^;]*;/\\1 = '${ROUNDCUBE_SKIN}';/g" /etc/roundcubemail/config.inc.php
     echo "info:  finished configuring roundcube skin"
 }
 
