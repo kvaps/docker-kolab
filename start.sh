@@ -260,11 +260,25 @@ configure_nginx_cache()
 configure_spam_sieve()
 {
     if [[ $(grep -c \$final_spam_destiny.*D_PASS /etc/amavisd/amavisd.conf) == 0 ]] ; then
-        echo "info:  start configuring spam sieve"
+        echo "info:  start configuring amavis"
         
         sed -i '/^[^#]*$sa_spam_subject_tag/s/^/#/' /etc/amavisd/amavisd.conf
         sed -i 's/^\($final_spam_destiny.*= \).*/\1D_PASS;/' /etc/amavisd/amavisd.conf
 
+        # Uncoment set_default_sieve
+        sed -i --follow-symlinks '/^;.*set_default_sieve/s/^;//' /etc/supervisord.conf
+
+        # Set domain name
+        sed -r -i "s/^\\\$mydomain = '[^']*';/\\\$mydomain = '$(hostname -d)';/" /etc/amavisd/amavisd.conf
+
+        echo "info:  finished configuring amavis"
+    else
+        echo "warn:  amavis already configured, skipping..."
+    fi
+
+    if [[ $(grep -c \"X-Spam\" /var/lib/imap/sieve/global/default.script) == 0 ]] ; then
+        echo "info:  start configuring spam sieve"
+ 
         # Create default sieve script
         mkdir -p /var/lib/imap/sieve/global/
         cat > /var/lib/imap/sieve/global/default.script << EOF
@@ -273,17 +287,15 @@ if header :contains "X-Spam-Flag" "YES"
 {
         fileinto "Spam";
 }
+if header :contains "X-Spam" "yes"
+{
+        fileinto "Spam";
+}
 EOF
         # Compile it
         /usr/lib/cyrus-imapd/sievec /var/lib/imap/sieve/global/default.script /var/lib/imap/sieve/global/default.bc
     
-        # Uncoment set_default_sieve
-        sed -i --follow-symlinks '/^;.*set_default_sieve/s/^;//' /etc/supervisord.conf
-
-        # Set domain name
-        sed -r -i "s/^\\\$mydomain = '[^']*';/\\\$mydomain = '$(hostname -d)';/" /etc/amavisd/amavisd.conf
-
-        echo "info:  finished configuring amavis"
+        echo "info:  finished configuring spam sieve"
     else
         echo "warn:  spam sieve already configured, skipping..."
     fi
