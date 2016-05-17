@@ -120,7 +120,7 @@ chk_dirs() {
     echo "Processing folders:"
     echo "STORAGE   FOLDER                   ACTION"
     echo "------------------------------------------------"
-    for storage in ${storagename[@]}; do
+    for storage in "${storagename[@]}"; do
         for dir in $(eval echo '${'$storage'_dirs[@]}'); do
            dirname=$(basename $dir)
            newdir="/${storage}${dirname}"
@@ -136,9 +136,21 @@ chk_dirs() {
            fi
            if [ ! -e ${newdir} ]; then
                echo -n '(link) '
-               [ "$(readlink $dir)" = "$newdir" ] && echo 'error: duplicate dirname!'
+
+               # If $dir is symbolyc link
+               if [ -L $dir ]; then
+                   linkdir="$(readlink $dir)"
+                   if [ "$linkdir" = "$newdir" ]; then
+                       echo 'error: duplicate dirname!'
+                       exit 1
+                   else
+                       #rm -rf $linkdir
+                       #ln -s $newdir $linkdir || exit 1
+                   fi
+               fi
+
                #rm -rf $dir
-               #ln -s ${newdir} $dir || exit 1
+               #ln -s $newdir $dir || exit 1
            fi
            echo
 
