@@ -47,6 +47,8 @@ load_defaults() {
     chk_env SERVICE_FAIL2BAN        false
     chk_env SERVICE_SET_SPAM_SIEVE  false
 
+    volumes=(config data log)
+
     config_dirs=(
         /etc/dirsrv
         /etc/fail2ban
@@ -118,7 +120,7 @@ chk_dirs() {
     echo "Processing folders:"
     echo "STORAGE   FOLDER                   ACTION"
     echo "------------------------------------------------"
-    for storage in config data log; do
+    for storage in ${storagename[@]}; do
         for dir in $(eval echo '${'$storage'_dirs[@]}'); do
            dirname=$(basename $dir)
 
