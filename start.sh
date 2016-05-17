@@ -123,21 +123,22 @@ chk_dirs() {
     for storage in ${storagename[@]}; do
         for dir in $(eval echo '${'$storage'_dirs[@]}'); do
            dirname=$(basename $dir)
+           newdir="/${storage}${dirname}"
 
            echo -en "$storage"
            print_spaces $storage 10
            echo -en "$dirname"
            print_spaces $dirname 25
 
-           if [ ! -e /${storage}${dirname} ]; then
+           if [ ! -e ${newdir} ]; then
                echo -n '(copy) '
-               #cp -Lrp $dir /${storage}${dirname} || exit 1
+               #cp -Lrp $dir ${newdir} || exit 1
            fi
-           if [ ! -e /${storage}${dirname} ]; then
+           if [ ! -e ${newdir} ]; then
                echo -n '(link) '
-               if 
+               [ "$(readlink $dir)" = "$newdir" ] && echo 'error: duplicate dirname!'
                #rm -rf $dir
-               #ln -s /${storage}${dirname} $dir || exit 1
+               #ln -s ${newdir} $dir || exit 1
            fi
            echo
 
