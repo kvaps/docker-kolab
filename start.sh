@@ -120,8 +120,14 @@ chk_dirs() {
     echo "Processing folders:"
     echo "STORAGE   FOLDER                   ACTION"
     echo "------------------------------------------------"
-    for storage in "${storagename[@]}"; do
-        for dir in $(eval echo '${'$storage'_dirs[@]}'); do
+    for storage in "${volumes[@]}"; do
+
+        # Default config dirs
+        configdirs=($(eval echo '${'$storage'_dirs[@]}'))
+        # User definded dirs
+        userdirs=($(env | grep -P '^'${storage^^}'_DIR_[0-9]+=' | cut -d= -f2-))
+
+        for dir in "${configdirs[@]}" "${userdirs[@]}"; do
            dirname=$(basename $dir)
            newdir="/${storage}${dirname}"
 
@@ -143,7 +149,7 @@ chk_dirs() {
                    if [ "$linkdir" = "$newdir" ]; then
                        echo 'error: duplicate dirname!'
                        exit 1
-                   else
+                   #else
                        #rm -rf $linkdir
                        #ln -s $newdir $linkdir || exit 1
                    fi
