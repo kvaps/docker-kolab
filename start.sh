@@ -129,10 +129,11 @@ chk_dirs() {
 
            if [ ! -e /${storage}${dirname} ]; then
                echo -n '(copy) '
-               #cp -rp $dir /${storage}${dirname} || exit 1
+               #cp -Lrp $dir /${storage}${dirname} || exit 1
            fi
            if [ ! -e /${storage}${dirname} ]; then
                echo -n '(link) '
+               if 
                #rm -rf $dir
                #ln -s /${storage}${dirname} $dir || exit 1
            fi
