@@ -1,0 +1,46 @@
+#!/bin/bash
+#
+# Default environment variables loading script.
+#
+# Usage:
+#     load_defaults [CONFIG]
+#
+
+chk_env() {
+    eval env="\$$1"
+    val="${env:-$2}"
+    if [ -z "$val" ]; then
+        >&2 echo "$0: Enviroment vaiable \$$1 is not set."
+        exit 1
+    fi  
+    export "$1"="$val"
+}
+
+config_name="load_defaults.conf"
+prefix="DEFAULT_"
+
+# Checking config
+if [ ! -z $1 ]; then
+    config_file="$1"
+elif [ -f $config_name ]; then
+    config_file="$config_name"
+elif [ -f /etc/$config_name ]; then
+    config_file="/etc/$config_name"
+fi
+
+# Error if config not found
+if [ ! -f "$config_file" ]; then
+    >&2 echo "$0: Cannot load ${config_file:=$config_name}: file does not exist."
+    exit 1
+fi
+
+# Export environment variables from $config_file with $prefix
+eval export $(cat $config_file | sed -e '/^\#/d' -e '/^$/d' -e 's/^/ /' | tr '\n' ' ' | sed -E 's/ ([a-z2A-Z0-9_]+=\S)/ '$prefix'\1/g')
+
+# Getting loaded envs
+envs=$(env | grep $prefix | cut -d= -f1 | cut -c $[${#prefix}+1]- )
+
+# Checkinkg envs
+for env in ${envs[@]}; do
+    eval 'chk_env "'$env'" "$'${prefix}${env}'"'
+done
