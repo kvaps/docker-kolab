@@ -1,0 +1,35 @@
+#!/usr/bin/expect
+
+proc send_env var {
+    if {[info exists ::env($var)]} {
+        send "$::env($var)"
+    }
+}
+
+set timeout -1
+
+spawn setup-kolab [lindex $argv 0];
+
+expect {
+    "Administrator password*:" {
+       send_env LDAP_ADMIN_PASS
+       send "\n"
+       exp_continue
+    }
+    "Confirm Administrator password:" {
+       send_env LDAP_ADMIN_PASS
+       send "\n"
+       exp_continue
+    }
+    "Directory Manager password*:" {
+       send_env LDAP_MANAGER_PASS 
+       send "\n"
+       exp_continue
+    }
+    "Confirm Directory Manager password:" {
+       send_env LDAP_MANAGER_PASS 
+       send "\n"
+       exp_continue
+    }
+}
+interact return

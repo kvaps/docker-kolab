@@ -1,27 +1,25 @@
-FROM centos:centos7
+FROM kvaps/baseimage
 MAINTAINER kvaps <kvapss@gmail.com>
-ENV REFRESHED_AT 2016-05-16
+ENV REFRESHED_AT 2016-06-23
 
 # Install repositories
 RUN yum -y update \
- && yum -y install epel-release \
  && yum -y install http://nginx.org/packages/centos/7/noarch/RPMS/nginx-release-centos-7-0.el7.ngx.noarch.rpm \
- && curl -o /etc/yum.repos.d/Kolab:16.repo  http://obs.kolabsys.com/repositories/Kolab:/16/CentOS_7/Kolab:16.repo
-
+ && curl -o /etc/yum.repos.d/Kolab:16.repo  http://obs.kolabsys.com/repositories/Kolab:/16/CentOS_7/Kolab:16.repo \
 # Configure keys and priority
-RUN gpg --keyserver pgp.mit.edu --recv-key 0x446D5A45 \
+ && gpg --keyserver pgp.mit.edu --recv-key 0x446D5A45 \
  && gpg --export --armor devel@lists.kolab.org > devel.asc \
  && rpm --import devel.asc \
  && rm -f devel.asc \
  && yum -y install yum-plugin-priorities \
- && for f in /etc/yum.repos.d/Kolab*.repo; do echo "priority = 60" >> $f; done
-
+ && for f in /etc/yum.repos.d/Kolab*.repo; do echo "priority = 60" >> $f; done \
 # Also install docfiles as they contain important files for the setup-kolab script
-RUN sed -i '/nodocs/d' /etc/yum.conf
+ && sed -i '/nodocs/d' /etc/yum.conf
 
 # Install kolab
 RUN yum -y install kolab
 
+RUN yum -y install expect vim
 ## Install additional soft
 #RUN yum -y install supervisor expect mod_ssl nginx php-fpm opendkim fail2ban git php-devel zlib-devel gcc pcre-devel dhclient
 #
@@ -48,9 +46,9 @@ RUN yum -y install kolab
 # && usermod -a -G clam -G amavis amavis
 
 # Ports: HTTP HTTPS SMTP SMTPS POP3 POP3S IMAP IMAPS SIEVE
-EXPOSE  80 443 25 587 143 993 110 995 4190
-VOLUME ["/data"]
-ENTRYPOINT ["/bin/start.sh"]
+#EXPOSE  80 443 25 587 143 993 110 995 4190
+#VOLUME ["/data"]
+#ENTRYPOINT ["/bin/start.sh"]
 
 ## Add config and setup script, run it
 #ADD service-wrapper.sh /bin/service-wrapper.sh
