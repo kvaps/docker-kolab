@@ -13,23 +13,100 @@ spawn setup-kolab [lindex $argv 0];
 expect {
     "Administrator password*:" {
        send_env LDAP_ADMIN_PASS
-       send "\n"
+       send "\r"
        exp_continue
     }
     "Confirm Administrator password:" {
        send_env LDAP_ADMIN_PASS
-       send "\n"
+       send "\r"
        exp_continue
     }
     "Directory Manager password*:" {
        send_env LDAP_MANAGER_PASS 
-       send "\n"
+       send "\r"
        exp_continue
     }
     "Confirm Directory Manager password:" {
        send_env LDAP_MANAGER_PASS 
-       send "\n"
+       send "\r"
        exp_continue
     }
+    "User *:" {
+       send "dirsrv"
+       send "\r"
+       exp_continue
+    }
+    "Group *:" {
+       send "dirsrv"
+       send "\r"
+       exp_continue
+    }
+    "Please confirm this is the appropriate domain name space" {
+       send "yes"
+       send "\r"
+       exp_continue
+    }
+    "The standard root dn we composed for you follows" {
+       send "yes"
+       send "\r"
+       exp_continue
+    }
+    "Cyrus Administrator password *:" {
+       send_env LDAP_MANAGER_PASS 
+       send "\r"
+       exp_continue
+    }
+    "Confirm Cyrus Administrator password:" {
+       send_env LDAP_MANAGER_PASS 
+       send "\r"
+       exp_continue
+    }
+    "Kolab Service password *:" {
+       send_env LDAP_KOLAB_PASS
+       send "\r"
+       exp_continue
+    }
+    "Confirm Kolab Service password:" {
+       send_env LDAP_KOLAB_PASS
+       send "\r"
+       exp_continue
+    }
+    "What MySQL server are we setting up" {
+       send "2"
+       send "\r"
+       exp_continue
+    }
+    "MySQL root password *:" {
+       send_env MYSQL_ROOT_PASS
+       send "\r"
+       exp_continue
+    }
+    "Confirm MySQL root password:" {
+       send_env MYSQL_ROOT_PASS
+       send "\r"
+       exp_continue
+    }
+    "MySQL kolab password *:" {
+       send_env MYSQL_KOLAB_PASS
+       send "\r"
+       exp_continue
+    }
+    "Confirm MySQL kolab password:" {
+       send_env MYSQL_KOLAB_PASS
+       send "\r"
+       exp_continue
+    }
+    "MySQL roundcube password *:" {
+       send_env MYSQL_ROUNDCUBE_PASS
+       send "\r"
+       exp_continue
+    }
+    "Confirm MySQL roundcube password:" {
+       send_env MYSQL_ROUNDCUBE_PASS
+       send "\r"
+       exp_continue
+    }
+    "Starting kolabd:" {
+       exit 0
+    }
 }
-interact return
