@@ -8,6 +8,9 @@ kolab-ldap:
   domainname: example.org
   volumes:
     - /etc/localtime:/etc/localtime:ro
+    - /sys/fs/cgroup:/sys/fs/cgroup:ro
+  tmpfs:
+    - /run
   environment:
     - LDAP_ADMIN_PASS=<password>
     - LDAP_MANAGER_PASS=<password>
@@ -29,6 +32,9 @@ kolab-mta:
     - kolab-mysql
   volumes:
     - /etc/localtime:/etc/localtime:ro
+    - /sys/fs/cgroup:/sys/fs/cgroup:ro
+  tmpfs:
+    - /run
   ports:
     - "25:25"
     - 587:587
@@ -45,6 +51,9 @@ kolab-imap:
     - kolab-ldap
   volumes:
     - /etc/localtime:/etc/localtime:ro
+    - /sys/fs/cgroup:/sys/fs/cgroup:ro
+  tmpfs:
+    - /run
   ports:
 #    - 110:110
 #    - 995:995
@@ -66,6 +75,9 @@ kolab-kolabd:
     - kolab-imap
   volumes:
     - /etc/localtime:/etc/localtime:ro
+    - /sys/fs/cgroup:/sys/fs/cgroup:ro
+  tmpfs:
+    - /run
 
 # install: mariadb-server
 # setup-kolab: mysql
@@ -77,6 +89,9 @@ kolab-kolabd-db:
   domainname: example.org
   volumes:
     - /etc/localtime:/etc/localtime:ro
+    - /sys/fs/cgroup:/sys/fs/cgroup:ro
+  tmpfs:
+    - /run
   environment:
     - MYSQL_ROOT_PASS=<password>
     - MYSQL_USER=kolab
@@ -96,6 +111,9 @@ kolab-roundcube:
     - kolab-roundcube-db:mysql
   volumes:
     - /etc/localtime:/etc/localtime:ro
+    - /sys/fs/cgroup:/sys/fs/cgroup:ro
+  tmpfs:
+    - /run
   environment:
     - MYSQL_PASSWORD=<password>
   ports:
@@ -112,6 +130,9 @@ kolab-roundcube-db:
   domainname: example.org
   volumes:
     - /etc/localtime:/etc/localtime:ro
+    - /sys/fs/cgroup:/sys/fs/cgroup:ro
+  tmpfs:
+    - /run
   environment:
     - MYSQL_ROOT_PASS=<password>
 
@@ -127,5 +148,8 @@ kolab-manticore:
     - kolab-ldap
   volumes:
     - /etc/localtime:/etc/localtime:ro
+    - /sys/fs/cgroup:/sys/fs/cgroup:ro
+  tmpfs:
+    - /run
   ports:
     - 8080:8080
