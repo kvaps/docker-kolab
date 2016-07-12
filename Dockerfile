@@ -1,9 +1,10 @@
-FROM kvaps/baseimage
+FROM kvaps/baseimage:systemd
 MAINTAINER kvaps <kvapss@gmail.com>
-ENV REFRESHED_AT 2016-06-23
+ENV REFRESHED_AT 2016-07-12
 
 # Install repositories
 RUN yum -y update \
+ && yum -y install epel-release \
  && yum -y install http://nginx.org/packages/centos/7/noarch/RPMS/nginx-release-centos-7-0.el7.ngx.noarch.rpm \
  && curl -o /etc/yum.repos.d/Kolab:16.repo  http://obs.kolabsys.com/repositories/Kolab:/16/CentOS_7/Kolab:16.repo \
 # Configure keys and priority
@@ -16,10 +17,17 @@ RUN yum -y update \
 # Also install docfiles as they contain important files for the setup-kolab script
  && sed -i '/nodocs/d' /etc/yum.conf
 
+RUN yum -y install expect vim
+
 # Install kolab
 RUN yum -y install kolab
 
-RUN yum -y install expect vim
+#User for 389-ds
+RUN adduser dirsrv
+
+ADD setup-kolab.exp /bin/setup-kolab.exp
+ADD start.sh /bin/start.sh
+
 ## Install additional soft
 #RUN yum -y install supervisor expect mod_ssl nginx php-fpm opendkim fail2ban git php-devel zlib-devel gcc pcre-devel dhclient
 #
@@ -31,8 +39,6 @@ RUN yum -y install expect vim
 # && mv /tmp/roundcube/plugins/zipdownload/ /usr/share/roundcubemail/plugins/ \
 # && rm -rf /tmp/roundcube/
 #
-##User for 389-ds
-#RUN adduser dirsrv
 #
 ## fix bug: "unable to open Berkeley db /etc/sasldb2: No such file or directory"
 #RUN echo password | saslpasswd2 sasldb2 && chown cyrus:saslauth /etc/sasldb2
