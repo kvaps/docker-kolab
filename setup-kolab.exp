@@ -72,7 +72,8 @@ expect {
        exp_continue
     }
     "What MySQL server are we setting up" {
-       send "2"
+       #send "1" # Existing
+       send "2" # New
        send "\r"
        exp_continue
     }
@@ -106,7 +107,7 @@ expect {
        send "\r"
        exp_continue
     }
-    "Timezone *:" {
+    "Timezone ID *:" {
       send_env TZ
       send "\r"
       exp_continue
