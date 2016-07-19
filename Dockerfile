@@ -27,6 +27,7 @@ RUN adduser dirsrv
 
 ADD setup-kolab.exp /bin/setup-kolab.exp
 ADD start.sh /bin/start.sh
+ADD configs/load_envs.conf configs/load_dirs.conf /etc/
 
 ## Install additional soft
 #RUN yum -y install supervisor expect mod_ssl nginx php-fpm opendkim fail2ban git php-devel zlib-devel gcc pcre-devel dhclient
@@ -57,9 +58,6 @@ ADD start.sh /bin/start.sh
 #ENTRYPOINT ["/bin/start.sh"]
 
 ## Add config and setup script, run it
-#ADD service-wrapper.sh /bin/service-wrapper.sh
-#ADD set_spam_sieve.sh /bin/set_spam_sieve.sh
-#ADD configs/supervisord.conf /etc/supervisord.conf
 #ADD configs/nginx/letsencrypt.conf /etc/nginx/letsencrypt.conf
 #ADD configs/nginx/kolab.conf /etc/nginx/kolab.conf
 #ADD configs/nginx/conf.d/default.conf /etc/nginx/conf.d/default.conf
