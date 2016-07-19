@@ -25,9 +25,9 @@ RUN yum -y install kolab
 #User for 389-ds
 RUN adduser dirsrv
 
-ADD setup-kolab.exp /bin/setup-kolab.exp
-ADD start.sh /bin/start.sh
-ADD configs/load_envs.conf configs/load_dirs.conf /etc/
+ADD bin/* /bin/
+ADD etc/* /etc/
+ADD lib/start/functions.sh /lib/start/functions.sh
 
 ## Install additional soft
 #RUN yum -y install supervisor expect mod_ssl nginx php-fpm opendkim fail2ban git php-devel zlib-devel gcc pcre-devel dhclient
