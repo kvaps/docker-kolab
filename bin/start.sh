@@ -32,4 +32,5 @@ configure ROUNDCUBE_TRASH flag trash
 configure EXT_MILTER_ADDR
 configure_roundcube_plugins
 
-bash
+## Start services
+#start_services || exit 1
