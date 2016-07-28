@@ -53,7 +53,7 @@ function configure_webserver {
 
             # Conigure Kolab for nginx
             sed -i '/^\[kolab_wap\]/,/^\[/ { x; /^$/ !{ x; H }; /^$/ { x; h; }; d; }; x; /^\[kolab_wap\]/ { s/\(\n\+[^\n]*\)$/\napi_url = https:\/\/'$(hostname -f)'\/kolab-webadmin\/api\1/; p; x; p; x; d }; x' /etc/kolab/kolab.conf
-            # TODO: add https://docs.kolab.org/howtos/nginx-webserver.html#finalize-common
+            #TODO add https://docs.kolab.org/howtos/nginx-webserver.html#finalize-common
         ;;
         apache )
             # Manage services
@@ -62,7 +62,7 @@ function configure_webserver {
             export SERVICE_PHP_FPM=true
 
             # Conigure Kolab for apache
-            # TODO: add section
+            #TODO add section
         ;;
     esac
 }
@@ -70,10 +70,10 @@ function configure_webserver {
 function configure_force_https {
     case $1 in
         true  ) 
-
+            #TODO add section
         ;;
         false )
-
+            #TODO add section
         ;;
     esac
 }
@@ -81,10 +81,10 @@ function configure_force_https {
 function configure_nginx_cache {
     case $1 in
         true  ) 
-
+            #TODO add section
         ;;
         false )
-
+            #TODO add section
         ;;
     esac
 }
@@ -117,19 +117,16 @@ function configure_fail2ban {
             # Manage services
             export SERVICE_FAIL2BAN=true
 
-            # Configure OpenDKIM
-            echo "info:  start configuring OpenDKIM"
-        
             if [ ! -f "/etc/opendkim/keys/$(hostname -s).private" ] 
                 opendkim-genkey -D /etc/opendkim/keys/ -d $(hostname -d) -s $(hostname -s)
                 chgrp opendkim /etc/opendkim/keys/*
                 chmod g+r /etc/opendkim/keys/*
             fi
             
-            # TODO: Check this
+            #TODO Check this
             sed -i "/^127\.0\.0\.1\:[10025|10027].*smtpd/a \    -o receive_override_options=no_milters" /etc/postfix/master.cf
 
-            # TODO: And this
+            #TODO And this
             sed -i --follow-symlinks 's/^\(^Mode\).*/\1  sv/' /etc/opendkim.conf
             echo "KeyTable      /etc/opendkim/KeyTable" >> /etc/opendkim.conf
             echo "SigningTable  /etc/opendkim/SigningTable" >> /etc/opendkim.conf
@@ -144,10 +141,11 @@ function configure_fail2ban {
             postconf -e non_smtpd_milters=inet:localhost:8891
        ;;
        false )
-           # Manage services
-           export SERVICE_FAIL2BAN=false
-           # Configure OpenDKIM
-           # TODO: Add section
+            # Manage services
+            export SERVICE_FAIL2BAN=false
+
+            # Configure OpenDKIM
+            #TODO add section
        ;;
     esac
 }
@@ -155,10 +153,10 @@ function configure_fail2ban {
 function configure_dkim {
     case $1 in
         true  ) 
-
+            #TODO add section
         ;;
         false )
-
+            #TODO add section
         ;;
     esac
 }
@@ -178,21 +176,16 @@ function configure_cert_path {
     fullchain_path=${domain_cers}/fullchain.pem
 
     if [ ! -f "$certificate_path" ] || [ ! -f "$privkey_path" ] ; then
-        echo "info:  start generating certificate"
         mkdir -p ${domain_cers}
-
         # Generate key and certificate
         openssl req -new -newkey rsa:4096 -days 3650 -nodes -x509 \
                     -subj "/CN=$(hostname -f)" \
                     -keyout $privkey_path \
                     -out $certificate_path
-    
         # Set access rights
         chown -R root:mail ${domain_cers}
         chmod 750 ${domain_cers}
         chmod 640 ${domain_cers}/*
-
-        echo "info:  generating certificate finished"
     fi
     
     # Configure apache for SSL
@@ -288,6 +281,7 @@ function configure_roundcube_trash {
 }
 
 function configure_ext_milter_addr {
+    #TODO add section
 }
 
 function configure_roundcube_plugins {
@@ -319,7 +313,11 @@ function configure_roundcube_plugin {
     local PLUGIN=$1
     local STATE=$2
     case $STATE in
-        true  ) echo enable $PLUGIN ;;
-        false ) echo disable $PLUGIN ;;
+        true  )
+            #TODO add section
+        ;;
+        false )
+            #TODO add section
+        ;;
     esac
 }
