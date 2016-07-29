@@ -179,11 +179,10 @@ function configure_dkim {
             #TODO Check this
             sed -i "/^127\.0\.0\.1\:[10025|10027].*smtpd/a \    -o receive_override_options=no_milters" /etc/postfix/master.cf
 
-            #TODO And this
-            sed -i --follow-symlinks 's/^\(^Mode\).*/\1  sv/' /etc/opendkim.conf
-            echo "KeyTable      /etc/opendkim/KeyTable" >> /etc/opendkim.conf
-            echo "SigningTable  /etc/opendkim/SigningTable" >> /etc/opendkim.conf
-            echo "X-Header yes" >> /etc/opendkim.conf
+            opendkim_conf --set $OPENDKIM_CONF Mode sv
+            opendkim_conf --set $OPENDKIM_CONF KeyTable "/etc/opendkim/KeyTable"
+            opendkim_conf --set $OPENDKIM_CONF SigningTable "/etc/opendkim/SigningTable"
+            opendkim_conf --set $OPENDKIM_CONF X-Header yes
         
             echo $(hostname -f | sed s/\\./._domainkey./) $(hostname -d):$(hostname -s):$(ls /etc/opendkim/keys/*.private) | cat > /etc/opendkim/KeyTable
             echo $(hostname -d) $(echo $(hostname -f) | sed s/\\./._domainkey./) | cat > /etc/opendkim/SigningTable
@@ -191,7 +190,8 @@ function configure_dkim {
             postconf -e milter_default_action=accept
             postconf -e milter_protocol=2
             postconf -e smtpd_milters=inet:localhost:8891
-            postconf -e non_smtpd_milters=inet:localhost:8891        ;;
+            postconf -e non_smtpd_milters=inet:localhost:8891
+        ;;
         false )
             # Manage services
             export SERVICE_OPENDKIM=false
@@ -326,26 +326,35 @@ function configure_max_body_size {
 }
 
 function configure_roundcube_skin {
-    sed -i -r "s/^\\s*(\\\$config\\[['\"]skin['\"]\\])\\s*=[^;]*;/\\1 = '${ROUNDCUBE_SKIN}';/g" /etc/roundcubemail/config.inc.php
+    roundcube_conf --set $ROUNDCUBE_CONF skin $ROUNDCUBE_SKIN
 }
 
 function configure_roundcube_trash {
     case $1 in
         trash )
-            roundcube_conf --set skip_deleted false
-            roundcube_conf --set flag_for_deletion false
+            roundcube_conf --set $ROUNDCUBE_CONF skip_deleted false
+            roundcube_conf --set $ROUNDCUBE_CONF flag_for_deletion false
         ;;
         flag )
-            roundcube_conf --set skip_deleted true
-            roundcube_conf --set flag_for_deletion true
-            sed -i "s/\$config\['skip_deleted'\] = '.*';/\$config\['skip_deleted'\] = 'true';/g" /etc/roundcubemail/config.inc.php
-            sed -i "s/\$config\['flag_for_deletion'\] = '.*';/\$config\['flag_for_deletion'\] = 'true';/g" /etc/roundcubemail/config.inc.php
+            roundcube_conf --set $ROUNDCUBE_CONF skip_deleted true
+            roundcube_conf --set $ROUNDCUBE_CONF flag_for_deletion true
         ;;
+        esac
 }
 
 
 function configure_ext_milter_addr {
-    #TODO add section
+    if [ ! -z $1 ] ; then
+        # Manage services
+        export SERVICE_AMAVISD=false
+        export SERVICE_CLAMD=false
+
+        # Conigure Postfix for external milter
+        #TODO add section
+    else
+        # Conigure Postfix for external milter
+        #TODO add section
+    fi
 }
 
 function configure_roundcube_plugins {
