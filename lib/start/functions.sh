@@ -1,10 +1,15 @@
 #!/bin/bash
 
-KOLAB_CONF="/etc/kolab/kolab.conf"
-ROUNDCUBE_CONF="/etc/roundcubemail/config.inc.php"
-PHP_INI="/etc/php.ini"
-AMAVISD_CONF="/etc/amavisd/amavisd.conf"
-OPENDKIM_CONF="/etc/opendkim.conf"
+KOLAB_CONF=`          readlink -f "/etc/kolab/kolab.conf"`
+ROUNDCUBE_CONF=`      readlink -f "/etc/roundcubemail/config.inc.php"`
+PHP_CONF=`            readlink -f "/etc/php.ini"`
+AMAVISD_CONF=`        readlink -f "/etc/amavisd/amavisd.conf"`
+OPENDKIM_CONF=`       readlink -f "/etc/opendkim.conf"`
+NGINX_CONF=`          readlink -f "/etc/nginx/nginx.conf"`
+NGINX_KOLAB_CONF=`    readlink -f "/etc/nginx/conf.d/default.conf"`
+HTTPD_CONF=`          readlink -f "/etc/httpd/conf/httpd.conf"`
+HTTPD_SSL_CONF=`      readlink -f "/etc/httpd/conf.d/ssl.conf"`
+IMAPD_CONF=`          readlink -f "/etc/imapd.conf"`
 
 function chk_env {
     eval env="\$$1"
@@ -46,7 +51,7 @@ function setup_kolab {
     setup_kolab.exp
 
     # Redirect to /webmail/ in apache
-    sed -i 's/^\(DocumentRoot \).*/\1"\/usr\/share\/roundcubemail\/public_html"/' /etc/httpd/conf/httpd.conf
+    sed -i 's/^\(DocumentRoot \).*/\1"\/usr\/share\/roundcubemail\/public_html"/' $HTTPD_CONF
 }
 
 function configure_webserver {
@@ -92,10 +97,33 @@ function configure_force_https {
 function configure_nginx_cache {
     case $1 in
         true  ) 
-            #TODO add section
+            # Configure nginx cache
+            if [ ! $(grep -q open_file_cache /etc/nginx/nginx.conf) ] ; then
+                #Adding open file cache to nginx
+                sed -i '/include \/etc\/nginx\/conf\.d\/\*.conf;/{
+                a \    open_file_cache max=16384 inactive=5m;
+                a \    open_file_cache_valid 90s; 
+                a \    open_file_cache_min_uses 2;
+                a \    open_file_cache_errors on;
+                }' $NGINX_CONF
+
+                sed -i '/include \/etc\/nginx\/conf\.d\/\*.conf;/{
+                a \    fastcgi_cache_key "$scheme$request_method$host$request_uri";
+                a \    fastcgi_cache_use_stale error timeout invalid_header http_500;
+                a \    fastcgi_cache_valid 200 302 304 10m;
+                a \    fastcgi_cache_valid 301 1h; 
+                a \    fastcgi_cache_min_uses 2; 
+                }' $NGINX_CONF
+
+                sed -i '1ifastcgi_cache_path /var/lib/nginx/fastcgi/ levels=1:2 keys_zone=key-zone-name:16m max_size=256m inactive=1d;' $NGINX_KOLAB_CONF
+                sed -i '/error_log/a \    fastcgi_cache key-zone-name;' $NGINX_KOLAB_CONF
+            fi
         ;;
         false )
-            #TODO add section
+            # Configure nginx cache
+            sed -i '/open_file_cache/d' $NGINX_CONF
+            sed -i '/fastcgi_cache/d' $NGINX_CONF
+            sed -i '/fastcgi_cache/d' $NGINX_KOLAB_CONF
         ;;
     esac
 }
@@ -107,17 +135,17 @@ function configure_spam_sieve {
             export SERVICE_SET_SPAM_SIEVE=true
 
             # Configure amavis
-            sed -i '/^[^#]*$sa_spam_subject_tag/s/^/#/' /etc/amavisd/amavisd.conf
-            sed -i 's/^\($final_spam_destiny.*= \).*/\1D_PASS;/' /etc/amavisd/amavisd.conf
-            sed -r -i "s/^\\\$mydomain = '[^']*';/\\\$mydomain = '$(hostname -d)';/" /etc/amavisd/amavisd.conf
+            sed -i '/^[^#]*$sa_spam_subject_tag/s/^/#/' $AMAVISD_CONF
+            sed -i 's/^\($final_spam_destiny.*= \).*/\1D_PASS;/' $AMAVISD_CONF
+            sed -r -i "s/^\\\$mydomain = '[^']*';/\\\$mydomain = '$(hostname -d)';/" $AMAVISD_CONF
         ;;
         false )
             # Manage services
             export SERVICE_SET_SPAM_SIEVE=false
 
             # Configure amavis
-            sed -i '/^#i.*$sa_spam_subject_tag/s/^#//' /etc/amavisd/amavisd.conf
-            sed -i 's/^\($final_spam_destiny.*= \).*/\1D_DISCARD;/' /etc/amavisd/amavisd.conf
+            sed -i '/^#i.*$sa_spam_subject_tag/s/^#//' $AMAVISD_CONF
+            sed -i 's/^\($final_spam_destiny.*= \).*/\1D_DISCARD;/' $AMAVISD_CONF
         ;;
     esac
 }
@@ -127,7 +155,21 @@ function configure_fail2ban {
         true  ) 
             # Manage services
             export SERVICE_FAIL2BAN=true
+       ;;
+       false )
+            # Manage services
+            export SERVICE_FAIL2BAN=false
+       ;;
+    esac
+}
 
+function configure_dkim {
+    case $1 in
+        true  ) 
+            # Manage services
+            export SERVICE_OPENDKIM=true
+
+            # Configure OpenDKIM
             if [ ! -f "/etc/opendkim/keys/$(hostname -s).private" ] 
                 opendkim-genkey -D /etc/opendkim/keys/ -d $(hostname -d) -s $(hostname -s)
                 chgrp opendkim /etc/opendkim/keys/*
@@ -149,25 +191,10 @@ function configure_fail2ban {
             postconf -e milter_default_action=accept
             postconf -e milter_protocol=2
             postconf -e smtpd_milters=inet:localhost:8891
-            postconf -e non_smtpd_milters=inet:localhost:8891
-       ;;
-       false )
-            # Manage services
-            export SERVICE_FAIL2BAN=false
-
-            # Configure OpenDKIM
-            #TODO add section
-       ;;
-    esac
-}
-
-function configure_dkim {
-    case $1 in
-        true  ) 
-            #TODO add section
-        ;;
+            postconf -e non_smtpd_milters=inet:localhost:8891        ;;
         false )
-            #TODO add section
+            # Manage services
+            export SERVICE_OPENDKIM=false
         ;;
     esac
 }
@@ -176,15 +203,15 @@ function configure_cert_path {
     if [ `find $CERT_PATH -prune -empty` ] ; then
         echo "configure_cert_path:  no certificates found in $CERT_PATH fallback to /etc/pki/tls/kolab"
         export CERT_PATH="/etc/pki/tls/kolab"
-        domain_cers=${CERT_PATH}/$(hostname -f)
+        local domain_cers=${CERT_PATH}/$(hostname -f)
     else
-        domain_cers=`ls -d ${CERT_PATH}/* | awk '{print $1}'`
+        local domain_cers=`ls -d ${CERT_PATH}/* | awk '{print $1}'`
     fi
 
-    certificate_path=${domain_cers}/cert.pem
-    privkey_path=${domain_cers}/privkey.pem
-    chain_path=${domain_cers}/chain.pem
-    fullchain_path=${domain_cers}/fullchain.pem
+    local certificate_path=${domain_cers}/cert.pem
+    local privkey_path=${domain_cers}/privkey.pem
+    local chain_path=${domain_cers}/chain.pem
+    local fullchain_path=${domain_cers}/fullchain.pem
 
     if [ ! -f "$certificate_path" ] || [ ! -f "$privkey_path" ] ; then
         mkdir -p ${domain_cers}
@@ -200,40 +227,40 @@ function configure_cert_path {
     fi
     
     # Configure apache for SSL
-    sed -i -e "/[^#]SSLCertificateFile /c\SSLCertificateFile $certificate_path" /etc/httpd/conf.d/ssl.conf
-    sed -i -e "/[^#]SSLCertificateKeyFile /c\SSLCertificateKeyFile $privkey_path" /etc/httpd/conf.d/ssl.conf
+    sed -i -e "/[^#]SSLCertificateFile /c\SSLCertificateFile $certificate_path" $HTTPD_SSL_CONF
+    sed -i -e "/[^#]SSLCertificateKeyFile /c\SSLCertificateKeyFile $privkey_path" $HTTPD_SSL_CONF
     if [ -f "$chain_path" ]; then
         if `sed 's/#.*$//g' /etc/httpd/conf.d/ssl.conf | grep -q SSLCertificateChainFile` ; then
-            sed -e "/[^#]*SSLCertificateChainFile: /cSSLCertificateChainFile: $chain_path" /etc/httpd/conf.d/ssl.conf
+            sed -e "/[^#]*SSLCertificateChainFile: /cSSLCertificateChainFile: $chain_path" $HTTPD_SSL_CONF
         else
-            sed -i -e "/[^#]*SSLCertificateFile/aSSLCertificateChainFile: $chain_path" /etc/httpd/conf.d/ssl.conf 
+            sed -i -e "/[^#]*SSLCertificateFile/aSSLCertificateChainFile: $chain_path" $HTTPD_SSL_CONF
         fi
     else
-        sed -i -e "/SSLCertificateChainFile/d" /etc/httpd/conf.d/ssl.conf
+        sed -i -e "/SSLCertificateChainFile/d" $HTTPD_SSL_CONF
     fi
     
     # Configuration nginx for SSL
     if [ -f "$fullchain_path" ]; then
-        sed -i -e "/ssl_certificate /c\    ssl_certificate $fullchain_path;" /etc/nginx/conf.d/default.conf
+        sed -i -e "/ssl_certificate /c\    ssl_certificate $fullchain_path;" $NGINX_KOLAB_CONF
     else
-        sed -i -e "/ssl_certificate /c\    ssl_certificate $certificate_path;" /etc/nginx/conf.d/default.conf
+        sed -i -e "/ssl_certificate /c\    ssl_certificate $certificate_path;" $NGINX_KOLAB_CONF
     fi
-    sed -i -e "/ssl_certificate_key/c\    ssl_certificate_key $privkey_path;" /etc/nginx/conf.d/default.conf
+    sed -i -e "/ssl_certificate_key/c\    ssl_certificate_key $privkey_path;" $NGINX_KOLAB_CONF
     
     #Configure Cyrus for SSL
     sed -r -i --follow-symlinks \
         -e "s|^tls_server_cert:.*|tls_server_cert: $certificate_path|g" \
         -e "s|^tls_server_key:.*|tls_server_key: $privkey_path|g" \
-        /etc/imapd.conf
+        $IMAPD_CONF
 
     if [ -f "$chain_path" ]; then
-        if grep -q tls_server_ca_file /etc/imapd.conf ; then
-            sed -i --follow-symlinks -e "s|^tls_server_ca_file:.*|tls_server_ca_file: $chain_path|g" /etc/imapd.conf
+        if grep -q tls_server_ca_file $IMAPD_CONF ; then
+            sed -i --follow-symlinks -e "s|^tls_server_ca_file:.*|tls_server_ca_file: $chain_path|g" $IMAPD_CONF
         else
-            sed -i --follow-symlinks -e "/tls_server_cert/atls_server_ca_file: $chain_path" /etc/imapd.conf
+            sed -i --follow-symlinks -e "/tls_server_cert/atls_server_ca_file: $chain_path" $IMAPD_CONF
         fi
     else
-        sed -i --follow-symlinks -e "/^tls_server_ca_file/d" /etc/httpd/conf.d/ssl.conf
+        sed -i --follow-symlinks -e "/^tls_server_ca_file/d" $IMAPD_CONF
     fi
         
     #Configure Postfix for SSL
@@ -247,32 +274,55 @@ function configure_cert_path {
 }
 
 function configure_kolab_default_locale {
-    sed -i -e '/default_locale/c\default_locale = '$KOLAB_DEFAULT_LOCALE /etc/kolab/kolab.conf
+    local $SIZE=$KOLAB_DEFAULT_QUOTA
+    # Convert megabytes to bytes for kolab.conf
+    case $SIZE in
+    *"G" ) $SIZE=$[($(echo $SIZE | sed 's/[^0-9]//g'))*1024]
+    *"M" ) $SIZE=$[($(echo $SIZE | sed 's/[^0-9]//g'))]
+    *"K" ) $SIZE=$[($(echo $SIZE | sed 's/[^0-9]//g'))/1024]
+    *    ) $SIZE=$[($(echo $SIZE | sed 's/[^0-9]//g'))/1024/1024]
+    esac
+    crudini --set $KOLAB_CONF kolab default_quota $SIZE
+}
+
+function configure_kolab_default_locale {
+    crudini --set $KOLAB_CONF kolab default_locale "$KOLAB_DEFAULT_LOCALE"
 }
 
 function configure_max_memory_size {
-    sed -i --follow-symlinks -e '/memory_limit/c\memory_limit = '$MAX_MEMORY_SIZE /etc/php.ini
+    crudini --set $PHP_CONF php memory_limit $MAX_MEMORY_SIZE
 }
 
 function configure_max_file_size {
-    sed -i --follow-symlinks -e '/upload_max_filesize/c\upload_max_filesize = '$MAX_FILE_SIZE /etc/php.ini
+    crudini --set $PHP_CONF php upload_max_filesize $MAX_FILE_SIZE
 }
 
 function configure_max_mail_size {
-    sed -i --follow-symlinks -e '/post_max_size/c\post_max_size = '$MAX_MAIL_SIZE /etc/php.ini
+    local $SIZE=$MAX_MAIL_SIZE
     # Convert megabytes to bytes for postfix
-    if [[ $MAX_MAIL_SIZE == *"M" ]] ; then MAX_MAIL_SIZE=$[($(echo $MAX_MAIL_SIZE | sed 's/[^0-9]//g'))*1024*1024] ; fi
-    postconf -e message_size_limit=$MAX_MAIL_SIZE
+    case $SIZE in
+    *"G" ) $SIZE=$[($(echo $SIZE | sed 's/[^0-9]//g'))*1024*1024*1024]
+    *"M" ) $SIZE=$[($(echo $SIZE | sed 's/[^0-9]//g'))*1024*1024]
+    *"K" ) $SIZE=$[($(echo $SIZE | sed 's/[^0-9]//g'))*1024]
+    *    ) $SIZE=$[($(echo $SIZE | sed 's/[^0-9]//g'))]
+    esac
+    postconf -e message_size_limit=$SIZE
 }
 
 function configure_max_mailbox_size {
+    local $SIZE=$MAX_MAILBOX_SIZE
     # Convert megabytes to bytes for postfix
-    if [[ $MAX_MAILBOX_SIZE == *"M" ]] ; then MAX_MAILBOX_SIZE=$[($(echo $MAX_MAILBOX_SIZE | sed 's/[^0-9]//g'))*1024*1024] ; fi
+    case $SIZE in
+    *"G" ) $SIZE=$[($(echo $SIZE | sed 's/[^0-9]//g'))*1024*1024*1024]
+    *"M" ) $SIZE=$[($(echo $SIZE | sed 's/[^0-9]//g'))*1024*1024]
+    *"K" ) $SIZE=$[($(echo $SIZE | sed 's/[^0-9]//g'))*1024]
+    *    ) $SIZE=$[($(echo $SIZE | sed 's/[^0-9]//g'))]
+    esac
     postconf -e mailbox_size_limit=$MAX_MAILBOX_SIZE
 }
 
 function configure_max_body_size {
-    sed -i -e '/client_max_body_size/c\        client_max_body_size '$MAX_BODY_SIZE';' /etc/nginx/conf.d/default.conf 
+    sed -i -e '/client_max_body_size/c\        client_max_body_size '$MAX_BODY_SIZE';' $NGINX_KOLAB_CONF
 }
 
 function configure_roundcube_skin {
@@ -282,19 +332,17 @@ function configure_roundcube_skin {
 function configure_roundcube_trash {
     case $1 in
         trash )
-            sed -i "s/\$config\['skip_deleted'\] = '.*';/\$config\['skip_deleted'\] = 'false';/g" /etc/roundcubemail/config.inc.php
-            sed -i "s/\$config\['flag_for_deletion'\] = '.*';/\$config\['flag_for_deletion'\] = 'false';/g" /etc/roundcubemail/config.inc.php
+            roundcube_conf --set skip_deleted false
+            roundcube_conf --set flag_for_deletion false
         ;;
         flag )
+            roundcube_conf --set skip_deleted true
+            roundcube_conf --set flag_for_deletion true
             sed -i "s/\$config\['skip_deleted'\] = '.*';/\$config\['skip_deleted'\] = 'true';/g" /etc/roundcubemail/config.inc.php
             sed -i "s/\$config\['flag_for_deletion'\] = '.*';/\$config\['flag_for_deletion'\] = 'true';/g" /etc/roundcubemail/config.inc.php
         ;;
 }
 
-skip_deleted false
-flag_for_deletion false
-skip_deleted true
-flag_for_deletion true
 
 function configure_ext_milter_addr {
     #TODO add section
@@ -360,3 +408,15 @@ function roundcube_conf {
     esac
 }
 
+function opendkim_conf {
+    local ACTION="$1"
+    local FILE="$2"
+    local OPTION="$3"
+    local VALUE="$4"
+
+    case $ACTION in
+        --set )
+            sed -i '1{p;s|.*|'$OPTION' '"$VALUE"'|;h;d;};/^'$OPTION'/{g;p;s|.*||;h;d;};$G' $FILE
+        ;;
+    esac
+}
