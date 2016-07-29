@@ -1,5 +1,11 @@
 #!/bin/bash
 
+KOLAB_CONF="/etc/kolab/kolab.conf"
+ROUNDCUBE_CONF="/etc/roundcubemail/config.inc.php"
+PHP_INI="/etc/php.ini"
+AMAVISD_CONF="/etc/amavisd/amavisd.conf"
+OPENDKIM_CONF="/etc/opendkim.conf"
+
 function chk_env {
     eval env="\$$1"
     val="${env:-$2}"
@@ -52,8 +58,10 @@ function configure_webserver {
             export SERVICE_PHP_FPM=false
 
             # Conigure Kolab for nginx
-            sed -i '/^\[kolab_wap\]/,/^\[/ { x; /^$/ !{ x; H }; /^$/ { x; h; }; d; }; x; /^\[kolab_wap\]/ { s/\(\n\+[^\n]*\)$/\napi_url = https:\/\/'$(hostname -f)'\/kolab-webadmin\/api\1/; p; x; p; x; d }; x' /etc/kolab/kolab.conf
-            #TODO add https://docs.kolab.org/howtos/nginx-webserver.html#finalize-common
+            crudini --set $KOLAB_CONF kolab_wap api_url "https://$(hostname -f)/kolab-webadmin/api"
+            roundcube_conf --set $ROUNDCUBE_CONF assets_path "/assets/"
+            roundcube_conf --set $ROUNDCUBE_CONF ssl_verify_peer false
+            roundcube_conf --set $ROUNDCUBE_CONF ssl_verify_host false
         ;;
         apache )
             # Manage services
@@ -62,7 +70,10 @@ function configure_webserver {
             export SERVICE_PHP_FPM=true
 
             # Conigure Kolab for apache
-            #TODO add section
+            crudini --del $KOLAB_CONF kolab_wap api_url
+            roundcube_conf --del $ROUNDCUBE_CONF assets_path
+            roundcube_conf --del $ROUNDCUBE_CONF ssl_verify_peer
+            roundcube_conf --del $ROUNDCUBE_CONF ssl_verify_host
         ;;
     esac
 }
@@ -280,6 +291,11 @@ function configure_roundcube_trash {
         ;;
 }
 
+skip_deleted false
+flag_for_deletion false
+skip_deleted true
+flag_for_deletion true
+
 function configure_ext_milter_addr {
     #TODO add section
 }
@@ -321,3 +337,26 @@ function configure_roundcube_plugin {
         ;;
     esac
 }
+
+function roundcube_conf {
+    local ACTION="$1"
+    local FILE="$2"
+    local OPTION="$3"
+    local VALUE="$4"
+
+    case $ACTION in
+        --set )
+            if [ -z $(roundcube_conf --get "$FILE" "$OPTION") ]; then
+                echo "\$config['$3'] = '$4';" >> "$2"
+            else
+                sed -i -r "s|^\\s*(\\\$config\\[['\"]$OPTION['\"]\\])\\s*=[^;]*;|\\1 = '$VALUE';|g" "$FILE"
+            fi
+        ;;
+        --get )
+            cat "$FILE" | grep -oP '(?<=\$config\['\'"$OPTION"\''\] = '\'').*(?='\'';)' | sed -r -e 's|^[^'\'']*'\''||g' -e 's|'\''.*$||'
+        ;;
+        --del )
+            sed -i -r "/^\\s*(\\\$config\\[['\"]$OPTION['\"]\\])\\s*=[^;]*;/d" "$FILE"
+    esac
+}
+
