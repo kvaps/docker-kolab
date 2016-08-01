@@ -1,6 +1,6 @@
 FROM kvaps/baseimage:systemd
 MAINTAINER kvaps <kvapss@gmail.com>
-ENV REFRESHED_AT 2016-07-12
+ENV REFRESHED_AT 2016-08-01
 
 # Install repositories
 RUN yum -y update \
@@ -17,7 +17,7 @@ RUN yum -y update \
 # Also install docfiles as they contain important files for the setup-kolab script
  && sed -i '/nodocs/d' /etc/yum.conf
 
-RUN yum -y install expect vim
+RUN yum -y install expect vim crudini
 
 # Install kolab
 RUN yum -y install kolab
@@ -27,7 +27,7 @@ RUN adduser dirsrv
 
 ADD bin/* /bin/
 ADD etc/* /etc/
-ADD lib/start/functions.sh /lib/start/functions.sh
+ADD lib/start/* /lib/start/
 
 ## Install additional soft
 #RUN yum -y install supervisor expect mod_ssl nginx php-fpm opendkim fail2ban git php-devel zlib-devel gcc pcre-devel dhclient

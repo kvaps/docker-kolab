@@ -49,7 +49,8 @@ function setup_kolab {
     chk_env MYSQL_KOLAB_PASS
     chk_env MYSQL_ROUNDCUBE_PASS
 
-    setup_kolab.exp
+    # Run setup-kolab
+    /lib/start/setup-kolab.exp
 
     # Redirect to /webmail/ in apache
     sed -i 's/^\(DocumentRoot \).*/\1"\/usr\/share\/roundcubemail\/public_html"/' $HTTPD_CONF
