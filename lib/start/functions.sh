@@ -178,7 +178,7 @@ function configure_dkim {
             export SERVICE_OPENDKIM=true
 
             # Configure OpenDKIM
-            if [ ! -f "/etc/opendkim/keys/$(hostname -s).private" ] 
+            if [ ! -f "/etc/opendkim/keys/$(hostname -s).private" ]; then 
                 opendkim-genkey -D /etc/opendkim/keys/ -d $(hostname -d) -s $(hostname -s)
                 chgrp opendkim /etc/opendkim/keys/*
                 chmod g+r /etc/opendkim/keys/*
@@ -286,10 +286,10 @@ function configure_kolab_default_locale {
     local $SIZE=$KOLAB_DEFAULT_QUOTA
     # Convert megabytes to bytes for kolab.conf
     case $SIZE in
-    *"G" ) $SIZE=$[($(echo $SIZE | sed 's/[^0-9]//g'))*1024]
-    *"M" ) $SIZE=$[($(echo $SIZE | sed 's/[^0-9]//g'))]
-    *"K" ) $SIZE=$[($(echo $SIZE | sed 's/[^0-9]//g'))/1024]
-    *    ) $SIZE=$[($(echo $SIZE | sed 's/[^0-9]//g'))/1024/1024]
+    *"G" ) $SIZE=$[($(echo $SIZE | sed 's/[^0-9]//g'))*1024];;
+    *"M" ) $SIZE=$[($(echo $SIZE | sed 's/[^0-9]//g'))];;
+    *"K" ) $SIZE=$[($(echo $SIZE | sed 's/[^0-9]//g'))/1024];;
+    *    ) $SIZE=$[($(echo $SIZE | sed 's/[^0-9]//g'))/1024/1024];;
     esac
     crudini --set $KOLAB_CONF kolab default_quota $SIZE
 }
@@ -310,10 +310,10 @@ function configure_max_mail_size {
     local $SIZE=$MAX_MAIL_SIZE
     # Convert megabytes to bytes for postfix
     case $SIZE in
-    *"G" ) $SIZE=$[($(echo $SIZE | sed 's/[^0-9]//g'))*1024*1024*1024]
-    *"M" ) $SIZE=$[($(echo $SIZE | sed 's/[^0-9]//g'))*1024*1024]
-    *"K" ) $SIZE=$[($(echo $SIZE | sed 's/[^0-9]//g'))*1024]
-    *    ) $SIZE=$[($(echo $SIZE | sed 's/[^0-9]//g'))]
+    *"G" ) $SIZE=$[($(echo $SIZE | sed 's/[^0-9]//g'))*1024*1024*1024];;
+    *"M" ) $SIZE=$[($(echo $SIZE | sed 's/[^0-9]//g'))*1024*1024];;
+    *"K" ) $SIZE=$[($(echo $SIZE | sed 's/[^0-9]//g'))*1024];;
+    *    ) $SIZE=$[($(echo $SIZE | sed 's/[^0-9]//g'))];;
     esac
     postconf -e message_size_limit=$SIZE
 }
@@ -322,10 +322,10 @@ function configure_max_mailbox_size {
     local $SIZE=$MAX_MAILBOX_SIZE
     # Convert megabytes to bytes for postfix
     case $SIZE in
-    *"G" ) $SIZE=$[($(echo $SIZE | sed 's/[^0-9]//g'))*1024*1024*1024]
-    *"M" ) $SIZE=$[($(echo $SIZE | sed 's/[^0-9]//g'))*1024*1024]
-    *"K" ) $SIZE=$[($(echo $SIZE | sed 's/[^0-9]//g'))*1024]
-    *    ) $SIZE=$[($(echo $SIZE | sed 's/[^0-9]//g'))]
+    *"G" ) $SIZE=$[($(echo $SIZE | sed 's/[^0-9]//g'))*1024*1024*1024];;
+    *"M" ) $SIZE=$[($(echo $SIZE | sed 's/[^0-9]//g'))*1024*1024];;
+    *"K" ) $SIZE=$[($(echo $SIZE | sed 's/[^0-9]//g'))*1024];;
+    *    ) $SIZE=$[($(echo $SIZE | sed 's/[^0-9]//g'))];;
     esac
     postconf -e mailbox_size_limit=$MAX_MAILBOX_SIZE
 }
