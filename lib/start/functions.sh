@@ -10,6 +10,7 @@ NGINX_KOLAB_CONF=`    readlink -f "/etc/nginx/conf.d/default.conf"`
 HTTPD_CONF=`          readlink -f "/etc/httpd/conf/httpd.conf"`
 HTTPD_SSL_CONF=`      readlink -f "/etc/httpd/conf.d/ssl.conf"`
 IMAPD_CONF=`          readlink -f "/etc/imapd.conf"`
+POSTFIX_MASTER_CONF=` readlink -f "/etc/postfix/master.cf"`
 
 function chk_env {
     eval env="\$$1"
@@ -183,8 +184,9 @@ function configure_dkim {
                 chmod g+r /etc/opendkim/keys/*
             fi
             
-            #TODO Check this
-            sed -i "/^127\.0\.0\.1\:[10025|10027].*smtpd/a \    -o receive_override_options=no_milters" /etc/postfix/master.cf
+            if ! $(grep -q '-o receive_override_options=no_milters' $POSTFIX_MASTER_CONF ) ; then
+                sed -i "/^127\.0\.0\.1\:[10025|10027].*smtpd/a \    -o receive_override_options=no_milters" /etc/postfix/master.cf
+            fi
 
             opendkim_conf --set $OPENDKIM_CONF Mode sv
             opendkim_conf --set $OPENDKIM_CONF KeyTable "/etc/opendkim/KeyTable"
