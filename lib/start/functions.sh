@@ -387,10 +387,12 @@ function configure_roundcube_plugin {
     local STATE=$2
     case $STATE in
         true  )
-            #TODO add section
+            if ! $(sed -n '/\$config\['\''plugins'\''\] = array(/,/[^)]);/p' $ROUNDCUBE_CONF | grep -q \'$PLUGIN\') ; then
+                sed -i '/\$config\['\''plugins'\''\] = array(/,/[^)]);/ s/);/    '\'$PLUGIN'\'',\n        );/' $ROUNDCUBE_CONF
+            fi
         ;;
         false )
-            #TODO add section
+            sed -i '/\$config\['\''plugins'\''\] = array(/,/[^)]);/ {/'\'$PLUGIN\''/d}' $ROUNDCUBE_CONF
         ;;
     esac
 }
