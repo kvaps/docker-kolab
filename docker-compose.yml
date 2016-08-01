@@ -1,0 +1,38 @@
+version: '2'
+services:
+  kolab:
+    restart: always
+    image: kvaps/kolab-dev
+    hostname: mail
+    domainname: example.org
+    volumes:
+      - /etc/localtime:/etc/localtime:ro
+      - /sys/fs/cgroup:/sys/fs/cgroup:ro
+      - /tmp/kolab:/data:rw
+    tmpfs:
+      - /run
+    environment:
+      - TZ=Europe/Moscow
+      - LDAP_ADMIN_PASS=<passowrd>
+      - LDAP_MANAGER_PASS=<passowrd>
+      - LDAP_CYRUS_PASS=<passowrd>
+      - LDAP_KOLAB_PASS=<passowrd>
+      - MYSQL_ROOT_PASS=<passowrd>
+      - MYSQL_KOLAB_PASS=<passowrd>
+      - MYSQL_ROUNDCUBE_PASS=<passowrd>
+      - KOLAB_DEFAULT_LOCALE=ru_RU
+      - ROUNDCUBE_SKIN=larry
+  #    - LE_RENEW_HOOK=docker restart @CONTAINER_NAME@
+    ports:
+      - '80:80'
+      - '443:443'
+      - '25:25'
+      - '587:587'
+      - '110:110'
+      - '995:995'
+      - '143:143'
+      - '993:993'
+      - '4190:4190'
+      - '389:389'
+    cap_add:
+      - NET_ADMIN
