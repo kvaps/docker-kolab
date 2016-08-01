@@ -183,10 +183,6 @@ function configure_dkim {
                 chgrp opendkim /etc/opendkim/keys/*
                 chmod g+r /etc/opendkim/keys/*
             fi
-            
-            if ! $(grep -q '-o receive_override_options=no_milters' $POSTFIX_MASTER_CONF ) ; then
-                sed -i "/^127\.0\.0\.1\:[10025|10027].*smtpd/a \    -o receive_override_options=no_milters" /etc/postfix/master.cf
-            fi
 
             opendkim_conf --set $OPENDKIM_CONF Mode sv
             opendkim_conf --set $OPENDKIM_CONF KeyTable "/etc/opendkim/KeyTable"
@@ -196,10 +192,14 @@ function configure_dkim {
             echo $(hostname -f | sed s/\\./._domainkey./) $(hostname -d):$(hostname -s):$(ls /etc/opendkim/keys/*.private) | cat > /etc/opendkim/KeyTable
             echo $(hostname -d) $(echo $(hostname -f) | sed s/\\./._domainkey./) | cat > /etc/opendkim/SigningTable
         
+            # Conigure Postfix
             postconf -e milter_default_action=accept
-            postconf -e milter_protocol=2
-            postconf -e smtpd_milters=inet:localhost:8891
-            postconf -e non_smtpd_milters=inet:localhost:8891
+            if [ "$(postconf smtpd_milters | grep -c inet:localhost:8891)" != "0" ] && [ "$(grep -c "smtpd_milters=inet:localhost:8891" $POSTFIX_MASTER_CONF)" == "0" ] ; then
+                sed -i "/^127\.0\.0\.1\:10027.*smtpd/a \    -o smtpd_milters=inet:localhost:8891" $POSTFIX_MASTER_CONF
+                sed -i "/^127\.0\.0\.1\:10027.*smtpd/a \    -o milter_protocol=2" $POSTFIX_MASTER_CONF
+                sed -i "/^127\.0\.0\.1\:[10025|10027].*smtpd/a \    -o receive_override_options=no_milters" $POSTFIX_MASTER_CONF
+            fi
+
         ;;
         false )
             # Manage services
@@ -351,18 +351,30 @@ function configure_roundcube_trash {
         esac
 }
 
-
 function configure_ext_milter_addr {
     if [ ! -z $1 ] ; then
         # Manage services
         export SERVICE_AMAVISD=false
         export SERVICE_CLAMD=false
 
-        # Conigure Postfix for external milter
-        #TODO add section
+        postconf -e milter_protocol=$EXT_MILTER_PROTO
+        postconf -e smtpd_milters=$EXT_MILTER_ADDR
+        postconf -e non_smtpd_milters=$EXT_MILTER_ADDR
+        postconf -e content_filter=smtp-wallace:[127.0.0.1]:10026
+
+        # Disable amavis chain
+        sed -i '/^smtp-amavis/,/^$/ {/^[^$]/ s/^/#/}' $POSTFIX_MASTER_CONF
+        sed -i '/^127.0.0.1:10025/,/^$/ {/^[^$]/ s/^/#/}' $POSTFIX_MASTER_CONF
     else
         # Conigure Postfix for external milter
-        #TODO add section
+        postconf -e milter_protocol=
+        postconf -e smtpd_milters=
+        postconf -e non_smtpd_milters=
+        postconf -e content_filter=smtp-amavis:[127.0.0.1]:10024
+
+        # Enable amavis chain
+        sed -i '/^#smtp-amavis/,/^$/ {/^[^$]/ s/^#//}' $POSTFIX_MASTER_CONF 
+        sed -i'/^#127.0.0.1:10025/,/^$/ {/^[^$]/ s/^#//}' $POSTFIX_MASTER_CONF
     fi
 }
 
