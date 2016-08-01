@@ -6,7 +6,7 @@ PHP_CONF=`            readlink -f "/etc/php.ini"`
 AMAVISD_CONF=`        readlink -f "/etc/amavisd/amavisd.conf"`
 OPENDKIM_CONF=`       readlink -f "/etc/opendkim.conf"`
 NGINX_CONF=`          readlink -f "/etc/nginx/nginx.conf"`
-NGINX_KOLAB_CONF=`    readlink -f "/etc/nginx/conf.d/default.conf"`
+NGINX_DEFAULT_CONF=`  readlink -f "/etc/nginx/conf.d/default.conf"`
 HTTPD_CONF=`          readlink -f "/etc/httpd/conf/httpd.conf"`
 HTTPD_SSL_CONF=`      readlink -f "/etc/httpd/conf.d/ssl.conf"`
 IMAPD_CONF=`          readlink -f "/etc/imapd.conf"`
@@ -90,14 +90,14 @@ function configure_force_https {
             if ! $(grep -q '<VirtualHost _default_:80>' $HTTPD_CONF) ; then
                 echo -e '<VirtualHost _default_:80>\n    RewriteEngine On\n    RewriteRule ^(.*)$ https://%{HTTP_HOST}\$1 [R=301,L]\n</VirtualHost>' >> $HTTPD_CONF
             fi
-            sed -i -e '0,/^}/ {/listen 80/,/^}/ {s|include /etc/nginx/kolab.conf;|location / {\n        return 301 https://$server_name$request_uri;\n    }|}}' $NGINX_KOLAB_CONF
+            sed -i -e '0,/^}/ {/listen 80/,/^}/ {s|include /etc/nginx/kolab.conf;|location / {\n        return 301 https://$server_name$request_uri;\n    }|}}' $NGINX_DEFAULT_CONF
         ;;
         false )
             sed -i -e '/\<VirtualHost _default_:80>/,/<\/VirtualHost>/d' $HTTPD_CONF
             sed -i -r \
                 -e '0,/^}/ {/listen 80/,/^}/ {/location \/ {/,/}/d}}' \
                 -e '0,/^}/ {/listen 80/,/^}/ s|^}|    include /etc/nginx/kolab.conf\n}|}' \
-            $NGINX_KOLAB_CONF
+            $NGINX_DEFAULT_CONF
         ;;
     esac
 }
@@ -123,15 +123,15 @@ function configure_nginx_cache {
                 a \    fastcgi_cache_min_uses 2; 
                 }' $NGINX_CONF
 
-                sed -i '1ifastcgi_cache_path /var/lib/nginx/fastcgi/ levels=1:2 keys_zone=key-zone-name:16m max_size=256m inactive=1d;' $NGINX_KOLAB_CONF
-                sed -i '/error_log/a \    fastcgi_cache key-zone-name;' $NGINX_KOLAB_CONF
+                sed -i '1ifastcgi_cache_path /var/lib/nginx/fastcgi/ levels=1:2 keys_zone=key-zone-name:16m max_size=256m inactive=1d;' $NGINX_DEFAULT_CONF
+                sed -i '/error_log/a \    fastcgi_cache key-zone-name;' $NGINX_DEFAULT_CONF
             fi
         ;;
         false )
             # Configure nginx cache
             sed -i '/open_file_cache/d' $NGINX_CONF
             sed -i '/fastcgi_cache/d' $NGINX_CONF
-            sed -i '/fastcgi_cache/d' $NGINX_KOLAB_CONF
+            sed -i '/fastcgi_cache/d' $NGINX_DEFAULT_CONF
         ;;
     esac
 }
@@ -250,11 +250,11 @@ function configure_cert_path {
     
     # Configuration nginx for SSL
     if [ -f "$fullchain_path" ]; then
-        sed -i -e "/ssl_certificate /c\    ssl_certificate $fullchain_path;" $NGINX_KOLAB_CONF
+        sed -i -e "/ssl_certificate /c\    ssl_certificate $fullchain_path;" $NGINX_DEFAULT_CONF
     else
-        sed -i -e "/ssl_certificate /c\    ssl_certificate $certificate_path;" $NGINX_KOLAB_CONF
+        sed -i -e "/ssl_certificate /c\    ssl_certificate $certificate_path;" $NGINX_DEFAULT_CONF
     fi
-    sed -i -e "/ssl_certificate_key/c\    ssl_certificate_key $privkey_path;" $NGINX_KOLAB_CONF
+    sed -i -e "/ssl_certificate_key/c\    ssl_certificate_key $privkey_path;" $NGINX_DEFAULT_CONF
     
     #Configure Cyrus for SSL
     sed -r -i --follow-symlinks \
@@ -331,7 +331,7 @@ function configure_max_mailbox_size {
 }
 
 function configure_max_body_size {
-    sed -i -e '/client_max_body_size/c\        client_max_body_size '$MAX_BODY_SIZE';' $NGINX_KOLAB_CONF
+    sed -i -e '/client_max_body_size/c\        client_max_body_size '$MAX_BODY_SIZE';' $NGINX_DEFAULT_CONF
 }
 
 function configure_roundcube_skin {
