@@ -283,7 +283,7 @@ function configure_cert_path {
     fi
 }
 
-function configure_kolab_default_locale {
+function configure_kolab_default_quota {
     local $SIZE=$KOLAB_DEFAULT_QUOTA
     # Convert megabytes to bytes for kolab.conf
     case $SIZE in
