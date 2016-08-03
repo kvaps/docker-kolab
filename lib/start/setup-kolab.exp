@@ -72,8 +72,8 @@ expect {
        exp_continue
     }
     "What MySQL server are we setting up" {
-       #send "1" # Existing
-       send "2" # New
+       #send "1" ;# Existing
+       send "2" ;# New
        send "\r"
        exp_continue
     }
