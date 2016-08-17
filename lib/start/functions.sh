@@ -210,12 +210,16 @@ function configure_dkim {
 }
 
 function configure_cert_path {
-    if [ `find $CERT_PATH -prune -empty` ] ; then
+    local domain_cers=${CERT_PATH}/$(hostname -f)
+
+    if [ ! -d $domain_cers ]; then
+        local domain_cers=$(find ${CERT_PATH} -name cert.pem -exec dirname `readlink -f {}` \; -quit)
+    fi
+
+    if [ ! -d $domain_cers ]; then
         echo "configure_cert_path:  no certificates found in $CERT_PATH fallback to /etc/pki/tls/kolab"
         export CERT_PATH="/etc/pki/tls/kolab"
         local domain_cers=${CERT_PATH}/$(hostname -f)
-    else
-        local domain_cers=`ls -d ${CERT_PATH}/* | awk '{print $1}'`
     fi
 
     local certificate_path=${domain_cers}/cert.pem
@@ -284,13 +288,13 @@ function configure_cert_path {
 }
 
 function configure_kolab_default_quota {
-    local $SIZE=$KOLAB_DEFAULT_QUOTA
+    local SIZE=$KOLAB_DEFAULT_QUOTA
     # Convert megabytes to bytes for kolab.conf
     case $SIZE in
-    *"G" ) $SIZE=$[($(echo $SIZE | sed 's/[^0-9]//g'))*1024];;
-    *"M" ) $SIZE=$[($(echo $SIZE | sed 's/[^0-9]//g'))];;
-    *"K" ) $SIZE=$[($(echo $SIZE | sed 's/[^0-9]//g'))/1024];;
-    *    ) $SIZE=$[($(echo $SIZE | sed 's/[^0-9]//g'))/1024/1024];;
+    *"G" ) SIZE=$[ ($(echo $SIZE | sed 's/[^0-9]//g'))*1024 ];;
+    *"M" ) SIZE=$[ ($(echo $SIZE | sed 's/[^0-9]//g')) ];;
+    *"K" ) SIZE=$[ ($(echo $SIZE | sed 's/[^0-9]//g'))/1024 ];;
+    *    ) SIZE=$[ ($(echo $SIZE | sed 's/[^0-9]//g'))/1024/1024 ];;
     esac
     crudini --set $KOLAB_CONF kolab default_quota $SIZE
 }
@@ -308,27 +312,27 @@ function configure_max_file_size {
 }
 
 function configure_max_mail_size {
-    local $SIZE=$MAX_MAIL_SIZE
+    local SIZE=$MAX_MAIL_SIZE
     # Convert megabytes to bytes for postfix
     case $SIZE in
-    *"G" ) $SIZE=$[($(echo $SIZE | sed 's/[^0-9]//g'))*1024*1024*1024];;
-    *"M" ) $SIZE=$[($(echo $SIZE | sed 's/[^0-9]//g'))*1024*1024];;
-    *"K" ) $SIZE=$[($(echo $SIZE | sed 's/[^0-9]//g'))*1024];;
-    *    ) $SIZE=$[($(echo $SIZE | sed 's/[^0-9]//g'))];;
+    *"G" ) SIZE=$[ ($(echo $SIZE | sed 's/[^0-9]//g'))*1024*1024*1024 ];;
+    *"M" ) SIZE=$[ ($(echo $SIZE | sed 's/[^0-9]//g'))*1024*1024 ];;
+    *"K" ) SIZE=$[ ($(echo $SIZE | sed 's/[^0-9]//g'))*1024 ];;
+    *    ) SIZE=$[ ($(echo $SIZE | sed 's/[^0-9]//g')) ];;
     esac
     postconf -e message_size_limit=$SIZE
 }
 
 function configure_max_mailbox_size {
-    local $SIZE=$MAX_MAILBOX_SIZE
+    local SIZE=$MAX_MAILBOX_SIZE
     # Convert megabytes to bytes for postfix
     case $SIZE in
-    *"G" ) $SIZE=$[($(echo $SIZE | sed 's/[^0-9]//g'))*1024*1024*1024];;
-    *"M" ) $SIZE=$[($(echo $SIZE | sed 's/[^0-9]//g'))*1024*1024];;
-    *"K" ) $SIZE=$[($(echo $SIZE | sed 's/[^0-9]//g'))*1024];;
-    *    ) $SIZE=$[($(echo $SIZE | sed 's/[^0-9]//g'))];;
+    *"G" ) SIZE=$[ ($(echo $SIZE | sed 's/[^0-9]//g'))*1024*1024*1024 ];;
+    *"M" ) SIZE=$[ ($(echo $SIZE | sed 's/[^0-9]//g'))*1024*1024 ];;
+    *"K" ) SIZE=$[ ($(echo $SIZE | sed 's/[^0-9]//g'))*1024 ];;
+    *    ) SIZE=$[ ($(echo $SIZE | sed 's/[^0-9]//g')) ];;
     esac
-    postconf -e mailbox_size_limit=$MAX_MAILBOX_SIZE
+    postconf -e mailbox_size_limit=$SIZE
 }
 
 function configure_max_body_size {
@@ -375,7 +379,7 @@ function configure_ext_milter_addr {
 
         # Enable amavis chain
         sed -i '/^#smtp-amavis/,/^$/ {/^[^$]/ s/^#//}' $POSTFIX_MASTER_CONF 
-        sed -i'/^#127.0.0.1:10025/,/^$/ {/^[^$]/ s/^#//}' $POSTFIX_MASTER_CONF
+        sed -i '/^#127.0.0.1:10025/,/^$/ {/^[^$]/ s/^#//}' $POSTFIX_MASTER_CONF
     fi
 }
 
@@ -427,7 +431,7 @@ function roundcube_conf {
 
     case $ACTION in
         --set )
-            if [ -z $(roundcube_conf --get "$FILE" "$OPTION") ]; then
+            if [ -z "$(roundcube_conf --get "$FILE" "$OPTION")" ]; then
                 echo "\$config['$3'] = '$4';" >> "$2"
             else
                 sed -i -r "s|^\\s*(\\\$config\\[['\"]$OPTION['\"]\\])\\s*=[^;]*;|\\1 = '$VALUE';|g" "$FILE"
