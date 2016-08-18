@@ -210,16 +210,21 @@ function configure_dkim {
 }
 
 function configure_cert_path {
-    local domain_cers=${CERT_PATH}/$(hostname -f)
 
-    if [ ! -d $domain_cers ]; then
-        local domain_cers=$(find ${CERT_PATH} -name cert.pem -exec dirname `readlink -f {}` \; -quit)
-    fi
-
-    if [ ! -d $domain_cers ]; then
-        echo "configure_cert_path:  no certificates found in $CERT_PATH fallback to /etc/pki/tls/kolab"
-        export CERT_PATH="/etc/pki/tls/kolab"
+    if [ ! -d $CERT_PATH ]; then
         local domain_cers=${CERT_PATH}/$(hostname -f)
+        mkdir -p "${domain_cers}"
+    else
+        if [ -d "${CERT_PATH}/$(hostname -f)" ]; then
+            local domain_cers="${CERT_PATH}/$(hostname -f)"
+        elif [ -d "$(find ${CERT_PATH} -name cert.pem -exec dirname `readlink -f {}` \; -quit)" ]; then
+            local domain_cers="$(find ${CERT_PATH} -name cert.pem -exec dirname `readlink -f {}` \; -quit)"
+        else
+            echo "configure_cert_path:  no certificates found in $CERT_PATH fallback to /etc/pki/tls/kolab"
+            export CERT_PATH="/etc/pki/tls/kolab"
+            local domain_cers=${CERT_PATH}/$(hostname -f)
+            mkdir -p "${domain_cers}"
+        fi
     fi
 
     local certificate_path=${domain_cers}/cert.pem
@@ -228,7 +233,6 @@ function configure_cert_path {
     local fullchain_path=${domain_cers}/fullchain.pem
 
     if [ ! -f "$certificate_path" ] || [ ! -f "$privkey_path" ] ; then
-        mkdir -p ${domain_cers}
         # Generate key and certificate
         openssl req -new -newkey rsa:4096 -days 3650 -nodes -x509 \
                     -subj "/CN=$(hostname -f)" \
