@@ -1,6 +1,6 @@
 FROM kvaps/baseimage:systemd
 MAINTAINER kvaps <kvapss@gmail.com>
-ENV REFRESHED_AT 2016-08-01
+ENV REFRESHED_AT 2016-08-17
 
 # Install repositories
 RUN yum -y update \
@@ -17,7 +17,8 @@ RUN yum -y update \
 # Also install docfiles as they contain important files for the setup-kolab script
  && sed -i '/nodocs/d' /etc/yum.conf
 
-RUN yum -y install expect vim crudini
+RUN yum -y install expect vim crudini fail2ban php-fpm opendkim nginx mod_ssl \
+ && systemctl disable firewalld.service
 
 # Install kolab
 RUN yum -y install kolab
@@ -28,6 +29,8 @@ RUN adduser dirsrv
 ADD bin/* /bin/
 ADD etc/* /etc/
 ADD lib/start/* /lib/start/
+
+VOLUME ["/data", "/config", "/spool", "/log"]
 
 ## Install additional soft
 #RUN yum -y install supervisor expect mod_ssl nginx php-fpm opendkim fail2ban git php-devel zlib-devel gcc pcre-devel dhclient
@@ -54,7 +57,6 @@ ADD lib/start/* /lib/start/
 
 # Ports: HTTP HTTPS SMTP SMTPS POP3 POP3S IMAP IMAPS SIEVE
 #EXPOSE  80 443 25 587 143 993 110 995 4190
-#VOLUME ["/data"]
 #ENTRYPOINT ["/bin/start.sh"]
 
 ## Add config and setup script, run it

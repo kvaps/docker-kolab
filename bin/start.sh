@@ -5,8 +5,8 @@ source '/lib/start/functions.sh'
 # Load default environment variables
 source load_envs
 
-## Load directories
-#load_dirs || exit 1
+# Load directories
+load_dirs || exit 1
 
 ## Install updates if neded
 #install_updates
@@ -34,4 +34,6 @@ configure_ext_milter_addr
 configure_roundcube_plugins
 
 # Start services
-start_services || exit 1
+start_services #|| exit 1
+
+bash
