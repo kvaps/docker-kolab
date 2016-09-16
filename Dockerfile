@@ -8,10 +8,15 @@ RUN yum -y update \
  && yum -y install http://nginx.org/packages/centos/7/noarch/RPMS/nginx-release-centos-7-0.el7.ngx.noarch.rpm \
  && curl -o /etc/yum.repos.d/Kolab:16.repo  http://obs.kolabsys.com/repositories/Kolab:/16/CentOS_7/Kolab:16.repo \
 # Configure keys and priority
- && gpg --keyserver pgp.mit.edu --recv-key 0x446D5A45 \
+ && gpg --keyserver pool.sks-keyservers.net --recv-key 0x352c64e5 \
+ && gpg --export --armor epel@fedoraproject.org > epel.asc \
+ && rpm --import epel.asc \
+ && rm -f epel.asc \
+ && gpg --keyserver pool.sks-keyservers.net --recv-key 0x446D5A45 \
  && gpg --export --armor devel@lists.kolab.org > devel.asc \
  && rpm --import devel.asc \
  && rm -f devel.asc \
+# Configure priority
  && yum -y install yum-plugin-priorities \
  && for f in /etc/yum.repos.d/Kolab*.repo; do echo "priority = 60" >> $f; done \
 # Also install docfiles as they contain important files for the setup-kolab script

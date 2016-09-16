@@ -1,28 +1,32 @@
 version: '2'
 services:
   kolab:
-    restart: always
+    restart: on-failure:1
     image: kvaps/kolab-dev
     hostname: mail
     domainname: example.org
     volumes:
       - /etc/localtime:/etc/localtime:ro
       - /sys/fs/cgroup:/sys/fs/cgroup:ro
-      - /tmp/kolab:/data:rw
+      - /tmp/kolab/data:/data:rw
+      - /tmp/kolab/config:/config:rw
+      - /tmp/kolab/spool:/spool:rw
+      - /tmp/kolab/log:/log:rw
     tmpfs:
       - /run
     environment:
       - TZ=Europe/Moscow
-      - LDAP_ADMIN_PASS=<passowrd>
-      - LDAP_MANAGER_PASS=<passowrd>
-      - LDAP_CYRUS_PASS=<passowrd>
-      - LDAP_KOLAB_PASS=<passowrd>
-      - MYSQL_ROOT_PASS=<passowrd>
-      - MYSQL_KOLAB_PASS=<passowrd>
-      - MYSQL_ROUNDCUBE_PASS=<passowrd>
+      - LDAP_ADMIN_PASS=<password>
+      - LDAP_MANAGER_PASS=<password>
+      - LDAP_CYRUS_PASS=<password>
+      - LDAP_KOLAB_PASS=<password>
+      - MYSQL_ROOT_PASS=<password>
+      - MYSQL_KOLAB_PASS=<password>
+      - MYSQL_ROUNDCUBE_PASS=<password>
       - KOLAB_DEFAULT_LOCALE=ru_RU
       - ROUNDCUBE_SKIN=larry
   #    - LE_RENEW_HOOK=docker restart @CONTAINER_NAME@
+      - SPAM_SIEVE=false
     ports:
       - '80:80'
       - '443:443'
@@ -35,4 +39,6 @@ services:
       - '4190:4190'
       - '389:389'
     cap_add:
+      - SYS_ADMIN
       - NET_ADMIN
+    tty: true
