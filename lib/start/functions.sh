@@ -245,8 +245,8 @@ function configure_cert_path {
     fi
     
     # Configure apache for SSL
-    sed -i -e "/[^#]SSLCertificateFile /c\SSLCertificateFile $certificate_path" $HTTPD_SSL_CONF
-    sed -i -e "/[^#]SSLCertificateKeyFile /c\SSLCertificateKeyFile $privkey_path" $HTTPD_SSL_CONF
+    sed -i -e "/[^#]*SSLCertificateFile /c\SSLCertificateFile $certificate_path" $HTTPD_SSL_CONF
+    sed -i -e "/[^#]*SSLCertificateKeyFile /c\SSLCertificateKeyFile $privkey_path" $HTTPD_SSL_CONF
     if [ -f "$chain_path" ]; then
         if `sed 's/#.*$//g' /etc/httpd/conf.d/ssl.conf | grep -q SSLCertificateChainFile` ; then
             sed -e "/[^#]*SSLCertificateChainFile: /cSSLCertificateChainFile: $chain_path" $HTTPD_SSL_CONF

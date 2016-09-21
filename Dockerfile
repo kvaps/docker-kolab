@@ -1,6 +1,6 @@
 FROM kvaps/baseimage:systemd
 MAINTAINER kvaps <kvapss@gmail.com>
-ENV REFRESHED_AT 2016-08-17
+ENV REFRESHED_AT 2016-09-21
 
 # Install repositories
 RUN yum -y update \
