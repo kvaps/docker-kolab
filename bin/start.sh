@@ -34,6 +34,7 @@ configure_ext_milter_addr
 configure_roundcube_plugins
 
 # Start services
+systemctl start dirsrv@${hostname -s}.service
 start_services #|| exit 1
 
 bash
