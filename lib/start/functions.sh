@@ -58,6 +58,12 @@ function setup_kolab {
         -e '1iAlias / /usr/share/roundcubemail/public_html/' \
         -e 's:RewriteCond %{REQUEST_URI}  ^/(roundcubemail|webmail):RewriteCond %{REQUEST_URI}  ^/(|roundcubemail|webmail):' \
         $HTTPD_ROUNDCUBE_CONF
+
+    # Stop services
+    RUNNING_SERVICES=($(`systemctl list-units | grep running | awk '{print $1}' | grep -v '^systemd-\|start.service\|^dbus'`))
+    for SERVICE in ${RUNNING_SERVICES[@]}; do
+        systemctl stop $SERVICE
+    done
 }
 
 function configure_webserver {
