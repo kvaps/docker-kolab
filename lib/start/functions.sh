@@ -9,6 +9,7 @@ NGINX_CONF=`          readlink -f "/etc/nginx/nginx.conf"`
 NGINX_DEFAULT_CONF=`  readlink -f "/etc/nginx/conf.d/default.conf"`
 HTTPD_CONF=`          readlink -f "/etc/httpd/conf/httpd.conf"`
 HTTPD_SSL_CONF=`      readlink -f "/etc/httpd/conf.d/ssl.conf"`
+HTTPD_ROUNDCUBE_CONF=`readlink -f "/etc/httpd/conf.d/roundcubemail.conf"`
 IMAPD_CONF=`          readlink -f "/etc/imapd.conf"`
 POSTFIX_MASTER_CONF=` readlink -f "/etc/postfix/master.cf"`
 
@@ -52,8 +53,11 @@ function setup_kolab {
     # Run setup-kolab
     /lib/start/setup-kolab.exp
 
-    # Redirect to /webmail/ in apache
-    sed -i 's/^\(DocumentRoot \).*/\1"\/usr\/share\/roundcubemail\/public_html"/' $HTTPD_CONF
+    # Alias for /webmail/ in apache
+    sed -i \
+        -e '1iAlias / /usr/share/roundcubemail/public_html/' \
+        -e 's:RewriteCond %{REQUEST_URI}  ^/(roundcubemail|webmail):RewriteCond %{REQUEST_URI}  ^/(|roundcubemail|webmail):' \
+        $HTTPD_ROUNDCUBE_CONF
 }
 
 function configure_webserver {
@@ -89,7 +93,7 @@ function configure_force_https {
     case $1 in
         true  ) 
             if ! $(grep -q '<VirtualHost _default_:80>' $HTTPD_CONF) ; then
-                echo -e '<VirtualHost _default_:80>\n    RewriteEngine On\n    RewriteRule ^(.*)$ https://%{HTTP_HOST}\$1 [R=301,L]\n</VirtualHost>' >> $HTTPD_CONF
+                echo -e '<VirtualHost _default_:80>\n    RewriteEngine On\n    RewriteRule (.*) https://%{HTTP_HOST}%{REQUEST_URI} [R=301,L]\n</VirtualHost>' >> $HTTPD_CONF
             fi
             sed -i -e '0,/^}/ {/listen 80/,/^}/ {s|include /etc/nginx/kolab.conf;|location / {\n        return 301 https://$server_name$request_uri;\n    }|}}' $NGINX_DEFAULT_CONF
         ;;
@@ -245,13 +249,13 @@ function configure_cert_path {
     fi
     
     # Configure apache for SSL
-    sed -i -e "/[^#]*SSLCertificateFile /c\SSLCertificateFile $certificate_path" $HTTPD_SSL_CONF
-    sed -i -e "/[^#]*SSLCertificateKeyFile /c\SSLCertificateKeyFile $privkey_path" $HTTPD_SSL_CONF
+    sed -i -e "/^[^#]*SSLCertificateFile /c\SSLCertificateFile $certificate_path" $HTTPD_SSL_CONF
+    sed -i -e "/^[^#]*SSLCertificateKeyFile /c\SSLCertificateKeyFile $privkey_path" $HTTPD_SSL_CONF
     if [ -f "$chain_path" ]; then
         if `sed 's/#.*$//g' /etc/httpd/conf.d/ssl.conf | grep -q SSLCertificateChainFile` ; then
-            sed -e "/[^#]*SSLCertificateChainFile: /cSSLCertificateChainFile: $chain_path" $HTTPD_SSL_CONF
+            sed -e "/^[^#]*SSLCertificateChainFile: /cSSLCertificateChainFile: $chain_path" $HTTPD_SSL_CONF
         else
-            sed -i -e "/[^#]*SSLCertificateFile/aSSLCertificateChainFile: $chain_path" $HTTPD_SSL_CONF
+            sed -i -e "/^[^#]*SSLCertificateFile/aSSLCertificateChainFile: $chain_path" $HTTPD_SSL_CONF
         fi
     else
         sed -i -e "/SSLCertificateChainFile/d" $HTTPD_SSL_CONF
