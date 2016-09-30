@@ -59,6 +59,9 @@ function setup_kolab {
         -e 's:RewriteCond %{REQUEST_URI}  ^/(roundcubemail|webmail):RewriteCond %{REQUEST_URI}  ^/(|roundcubemail|webmail):' \
         $HTTPD_ROUNDCUBE_CONF
 
+    # Set hostname for Amavisd
+    sed 's/^[# ]*$myhostname.*$/$myhostname = "'$(hostname -f)'";/' $AMAVISD_CONF
+
     # Stop services
     RUNNING_SERVICES=($(`systemctl list-units | grep running | awk '{print $1}' | grep -v '^systemd-\|start.service\|^dbus'`))
     for SERVICE in ${RUNNING_SERVICES[@]}; do
