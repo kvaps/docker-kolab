@@ -60,7 +60,7 @@ function setup_kolab {
         $HTTPD_ROUNDCUBE_CONF
 
     # Set hostname for Amavisd
-    sed 's/^[# ]*$myhostname.*$/$myhostname = "'$(hostname -f)'";/' $AMAVISD_CONF
+    sed -i 's/^[# ]*$myhostname.*$/$myhostname = "'$(hostname -f)'";/' $AMAVISD_CONF
 
     # Stop services
     RUNNING_SERVICES=($(`systemctl list-units | grep running | awk '{print $1}' | grep -v '^systemd-\|start.service\|^dbus'`))
@@ -300,7 +300,7 @@ function configure_cert_path {
     if [ -f "$chain_path" ]; then
         postconf -e smtpd_tls_CAfile=$chain_path
     else
-        postconf -e smtpd_tls_CAfile=
+        postconf -X smtpd_tls_CAfile
     fi
 }
 
@@ -389,9 +389,9 @@ function configure_ext_milter_addr {
         sed -i '/^127.0.0.1:10025/,/^$/ {/^[^$]/ s/^/#/}' $POSTFIX_MASTER_CONF
     else
         # Conigure Postfix for external milter
-        postconf -e milter_protocol=
-        postconf -e smtpd_milters=
-        postconf -e non_smtpd_milters=
+        postconf -X milter_protocol
+        postconf -X smtpd_milters
+        postconf -X non_smtpd_milters
         postconf -e content_filter=smtp-amavis:[127.0.0.1]:10024
 
         # Enable amavis chain
