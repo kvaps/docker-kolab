@@ -474,3 +474,9 @@ function opendkim_conf {
         ;;
     esac
 }
+
+function start_dirsrv {
+    mkdir -p /var/run/dirsrv /var/lock/dirsrv/slapd-$(hostname -s)
+    chown -R dirsrv:dirsrv /var/run/dirsrv /var/lock/dirsrv
+    systemctl start dirsrv@$(hostname -s).service
+}

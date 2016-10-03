@@ -34,7 +34,8 @@ configure_ext_milter_addr
 configure_roundcube_plugins
 
 # Start services
-systemctl start dirsrv@$(hostname -s).service
+start_dirsrv #|| exit 1
 start_services #|| exit 1
 
-bash
+# Start logs readding
+journalctl -xef
