@@ -28,6 +28,8 @@ RUN yum -y install expect vim crudini fail2ban php-fpm opendkim nginx mod_ssl \
 # Install kolab
 RUN yum -y install kolab
 
+RUN yum -y install anacron logrotate
+
 #User for 389-ds
 RUN adduser dirsrv
 
