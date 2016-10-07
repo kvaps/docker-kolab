@@ -67,15 +67,16 @@ function setup_kolab {
     for SERVICE in ${RUNNING_SERVICES[@]}; do
         systemctl stop $SERVICE
     done
+    sleep 10
 }
 
 function configure_webserver {
     case $1 in
         nginx  ) 
             # Manage services
-            export SERVICE_HTTPD=true
-            export SERVICE_NGINX=false
-            export SERVICE_PHP_FPM=false
+            export SERVICE_HTTPD=false
+            export SERVICE_NGINX=true
+            export SERVICE_PHP_FPM=true
 
             # Conigure Kolab for nginx
             crudini --set $KOLAB_CONF kolab_wap api_url "https://$(hostname -f)/kolab-webadmin/api"
@@ -85,9 +86,9 @@ function configure_webserver {
         ;;
         apache )
             # Manage services
-            export SERVICE_HTTPD=false
-            export SERVICE_NGINX=true
-            export SERVICE_PHP_FPM=true
+            export SERVICE_HTTPD=true
+            export SERVICE_NGINX=false
+            export SERVICE_PHP_FPM=false
 
             # Conigure Kolab for apache
             crudini --del $KOLAB_CONF kolab_wap api_url
