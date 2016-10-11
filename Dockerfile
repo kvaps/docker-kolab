@@ -28,6 +28,9 @@ RUN yum -y install expect vim crudini fail2ban php-fpm opendkim nginx mod_ssl an
 # Install kolab
 RUN yum -y install kolab
 
+# fix freshclam
+RUN yum -y install clamav-update
+
 #User for 389-ds
 RUN adduser dirsrv
 
