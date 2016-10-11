@@ -63,11 +63,9 @@ function setup_kolab {
     sed -i 's/^[# ]*$myhostname.*$/$myhostname = "'$(hostname -f)'";/' $AMAVISD_CONF
 
     # Stop services
-    RUNNING_SERVICES=($(`systemctl list-units | grep running | awk '{print $1}' | grep -v '^systemd-\|start.service\|^dbus'`))
-    for SERVICE in ${RUNNING_SERVICES[@]}; do
-        systemctl stop $SERVICE
-    done
-    sleep 10
+    RUNNING_SERVICES=($(systemctl list-units | grep running | awk '{print $1}' | grep -v '^systemd-\|start.service\|^dbus'))
+    echo systemctl stop ${RUNNING_SERVICES[@]}
+    systemctl stop ${RUNNING_SERVICES[@]}
 }
 
 function configure_webserver {
@@ -479,5 +477,6 @@ function opendkim_conf {
 function start_dirsrv {
     mkdir -p /var/run/dirsrv /var/lock/dirsrv/slapd-$(hostname -s)
     chown -R dirsrv:dirsrv /var/run/dirsrv /var/lock/dirsrv
+    echo systemctl start dirsrv@$(hostname -s).service
     systemctl start dirsrv@$(hostname -s).service
 }
