@@ -1,6 +1,6 @@
 FROM kvaps/baseimage:systemd
 MAINTAINER kvaps <kvapss@gmail.com>
-ENV REFRESHED_AT 2016-09-21
+ENV REFRESHED_AT 2016-10-09
 
 # Install repositories
 RUN yum -y update \
@@ -22,20 +22,18 @@ RUN yum -y update \
 # Also install docfiles as they contain important files for the setup-kolab script
  && sed -i '/nodocs/d' /etc/yum.conf
 
-RUN yum -y install expect vim crudini fail2ban php-fpm opendkim nginx mod_ssl \
+RUN yum -y install expect vim crudini fail2ban php-fpm opendkim nginx mod_ssl anacron logrotate \
  && systemctl disable firewalld.service
 
 # Install kolab
 RUN yum -y install kolab
 
-RUN yum -y install anacron logrotate
-
 #User for 389-ds
 RUN adduser dirsrv
 
-ADD bin/* /bin/
-ADD etc/* /etc/
-ADD lib/start/* /lib/start/
+ADD bin/ /bin/
+ADD etc/ /etc/
+ADD lib/start/ /lib/start/
 
 VOLUME ["/data", "/config", "/spool", "/log"]
 

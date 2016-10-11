@@ -3,13 +3,13 @@
 source '/lib/start/functions.sh'
 
 # Load default environment variables
-source load_envs
+source image_env
 
 # Load directories
-load_dirs || exit 1
+image_stor || exit 1
 
 ## Install updates if neded
-#install_updates
+#image_update
 
 # First run
 [ ! -d /etc/dirsrv/slapd-* ] && setup_kolab
@@ -35,7 +35,7 @@ configure_roundcube_plugins
 
 # Start services
 start_dirsrv #|| exit 1
-start_services #|| exit 1
+image_services_start #|| exit 1
 
 # Start logs readding
 journalctl -xef

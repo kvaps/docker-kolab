@@ -13,6 +13,7 @@
 VOLUMES=(config data spool log)
 
 VOLUME_CONFIG=(
+    /etc/image/version.conf
     /etc/aliases
     /etc/amavisd
     /etc/clamd.conf
