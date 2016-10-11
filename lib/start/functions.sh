@@ -62,6 +62,9 @@ function setup_kolab {
     # Set hostname for Amavisd
     sed -i 's/^[# ]*$myhostname.*$/$myhostname = "'$(hostname -f)'";/' $AMAVISD_CONF
 
+    # Move /etc/aliases.db to /config/aliases.db
+    if [ "$(readlink -f /etc/aliases.db)" == "/etc/aliases.db" ] ; then mv /etc/aliases.db /config/aliases.db && ln -s /config/aliases.db /etc/aliases.db ; fi
+
     # Stop services
     RUNNING_SERVICES=($(systemctl list-units | grep running | awk '{print $1}' | grep -v '^systemd-\|start.service\|^dbus'))
     echo systemctl stop ${RUNNING_SERVICES[@]}
