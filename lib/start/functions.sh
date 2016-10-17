@@ -179,6 +179,7 @@ function configure_fail2ban {
     case $1 in
         true  ) 
             # Manage services
+            export SERVICE_SYSLOG=true
             export SERVICE_FAIL2BAN=true
 
             # Enable logging for kolab-webadmin
@@ -241,6 +242,20 @@ function configure_dkim {
         ;;
     esac
 }
+
+function configure_dkim {
+    case $1 in
+        true  ) 
+            # Manage services
+            export SERVICE_SYSLOG=true
+        ;;
+        false )
+            # Manage services
+            export SERVICE_SYSLOG=false
+        ;;
+    esac
+}
+
 
 function configure_cert_path {
 
