@@ -188,6 +188,7 @@ function configure_fail2ban {
                 patch -p4 -N --dry-run --silent $FILE < $PATCH 2>/dev/null
                 if [ $? -eq 0 ]; then patch -p4 -N $FILE < $PATCH ;fi
             )
+            touch /var/log/kolab-webadmin/auth_fail.log
        ;;
        false )
             # Manage services
