@@ -179,10 +179,26 @@ function configure_fail2ban {
         true  ) 
             # Manage services
             export SERVICE_FAIL2BAN=true
+
+            # Enable logging for kolab-webadmin
+            (
+                PATCH=/lib/start/kolab-webadmin.patch
+                FILE=/usr/share/kolab-webadmin/lib/kolab_client_task.php
+                patch -p4 -N --dry-run --silent $FILE < $PATCH 2>/dev/null
+                if [ $? -eq 0 ]; then patch -p4 -N $FILE < $PATCH ;fi
+            )
        ;;
        false )
             # Manage services
             export SERVICE_FAIL2BAN=false
+
+            # Disable logging for kolab-webadmin
+            (
+                PATCH=/lib/start/kolab-webadmin.patch
+                FILE=/usr/share/kolab-webadmin/lib/kolab_client_task.php
+                patch -R -p4 -N --dry-run --silent $FILE < $PATCH 2>/dev/null
+                if [ $? -eq 0 ]; then patch -R -p4 -N $FILE < $PATCH ;fi
+            )
        ;;
     esac
 }
