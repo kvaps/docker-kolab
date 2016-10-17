@@ -12,6 +12,7 @@ HTTPD_SSL_CONF=`      readlink -f "/etc/httpd/conf.d/ssl.conf"`
 HTTPD_ROUNDCUBE_CONF=`readlink -f "/etc/httpd/conf.d/roundcubemail.conf"`
 IMAPD_CONF=`          readlink -f "/etc/imapd.conf"`
 POSTFIX_MASTER_CONF=` readlink -f "/etc/postfix/master.cf"`
+FAIL2BAN_JAIL_CONF=`  readlink -f "/etc/fail2ban/jail.conf"`
 
 function chk_env {
     eval env="\$$1"
@@ -181,6 +182,7 @@ function configure_fail2ban {
             # Manage services
             export SERVICE_SYSLOG=true
             export SERVICE_FAIL2BAN=true
+            crudini --set $FAIL2BAN_JAIL_CONF DEFAULT bantime $FAIL2BAN_BANTIME
 
             # Enable logging for kolab-webadmin
             (
