@@ -31,6 +31,9 @@ RUN yum -y install kolab
 # fix freshclam
 RUN yum -y install clamav-update
 
+# fix guam for cyrus-imapd waiting
+RUN sed -i -e '/^\(Requires\|After\)=/ d' -e '/^Description=/aAfter=syslog.target cyrus-imapd.service\nRequires=cyrus-imapd.service' /usr/lib/systemd/system/guam.service
+
 #User for 389-ds
 RUN adduser dirsrv
 
