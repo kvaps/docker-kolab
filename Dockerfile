@@ -34,6 +34,9 @@ RUN yum -y install clamav-update
 # fix guam for cyrus-imapd waiting
 RUN sed -i -e '/^\(Requires\|After\)=/ d' -e '/^Description=/aAfter=syslog.target cyrus-imapd.service\nRequires=cyrus-imapd.service' /usr/lib/systemd/system/guam.service
 
+# fix manticore
+RUN ln -s /usr/share/manticore/node_modules /etc/manticore/node_modules
+
 #User for 389-ds
 RUN adduser dirsrv
 
