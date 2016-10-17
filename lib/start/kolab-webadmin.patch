@@ -1,0 +1,19 @@
+--- /usr/share/kolab-webadmin/lib/kolab_client_task.php.bak	2016-10-17 18:30:42.341922652 +0300
++++ /usr/share/kolab-webadmin/lib/kolab_client_task.php	2016-10-17 18:30:17.975488877 +0300
+@@ -260,6 +260,16 @@
+                     die;
+                 }
+                 else {
++// Log fail attemts for Fail2ban ##############
++                    $logfile = "/var/log/kolab-webadmin/auth_fail.log";
++                    if($logfh = fopen($logfile, 'a')) {
++                        $date = date("[d/M/Y:H:i:s O]");
++                        $remote_ip = $_SERVER["REMOTE_ADDR"];
++                        $logmsg = "$date $remote_ip $errormsg\n";
++                        fwrite($logfh, $logmsg);
++                        fclose($logfh);
++                    }
++// ############################################
+                     $code  = $result->get_error_code();
+                     $str   = $result->get_error_str();
+                     $label = 'loginerror';
