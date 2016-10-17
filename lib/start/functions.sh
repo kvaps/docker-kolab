@@ -36,6 +36,7 @@ function configure {
         exit 1
     fi
 
+    echo Configuring ${VARIABLE,,} ${STATE}
     configure_${VARIABLE,,} ${STATE} || ( >&2 echo "configure: Error executing configure_${VARIABLE,,} ${STATE}" ; exit 1)
 }
 
@@ -437,6 +438,7 @@ function configure_roundcube_plugins {
             exit 1
         fi
 
+        echo Configuring roundcube plugins
         configure_roundcube_plugin $plugin_name $plugin_state
     done
 }
@@ -448,11 +450,13 @@ function configure_roundcube_plugin {
     local STATE=$2
     case $STATE in
         true  )
+            echo Enabling $PLUGIN plugin
             if ! $(sed -n '/\$config\['\''plugins'\''\] = array(/,/[^)]);/p' $ROUNDCUBE_CONF | grep -q \'$PLUGIN\') ; then
                 sed -i '/\$config\['\''plugins'\''\] = array(/,/[^)]);/ s/);/    '\'$PLUGIN'\'',\n        );/' $ROUNDCUBE_CONF
             fi
         ;;
         false )
+            echo Disabling $PLUGIN plugin
             sed -i '/\$config\['\''plugins'\''\] = array(/,/[^)]);/ {/'\'$PLUGIN\''/d}' $ROUNDCUBE_CONF
         ;;
     esac
