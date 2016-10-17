@@ -24,9 +24,7 @@ services:
       - MYSQL_KOLAB_PASS=<password>
       - MYSQL_ROUNDCUBE_PASS=<password>
       - KOLAB_DEFAULT_LOCALE=ru_RU
-      - ROUNDCUBE_SKIN=larry
-  #    - LE_RENEW_HOOK=docker restart @CONTAINER_NAME@
-      - SPAM_SIEVE=false
+#      - LE_RENEW_HOOK=docker restart @CONTAINER_NAME@
     ports:
       - '80:80'
       - '443:443'

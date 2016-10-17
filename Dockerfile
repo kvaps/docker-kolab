@@ -1,6 +1,6 @@
 FROM kvaps/baseimage:systemd
 MAINTAINER kvaps <kvapss@gmail.com>
-ENV REFRESHED_AT 2016-10-09
+ENV REFRESHED_AT 2016-10-18
 
 # Install repositories
 RUN yum -y update \
@@ -22,7 +22,7 @@ RUN yum -y update \
 # Also install docfiles as they contain important files for the setup-kolab script
  && sed -i '/nodocs/d' /etc/yum.conf
 
-RUN yum -y install expect vim crudini fail2ban php-fpm opendkim nginx mod_ssl anacron logrotate \
+RUN yum -y install expect vim crudini fail2ban php-fpm opendkim nginx mod_ssl anacron logrotate patch rsyslog \
  && systemctl disable firewalld.service
 
 # Install kolab
@@ -39,7 +39,7 @@ RUN ln -s /usr/share/manticore/node_modules /etc/manticore/node_modules \
  && rm -f /etc/php-fpm.d/www.conf
 
 #User for 389-ds
-RUN adduser dirsrv
+RUN groupadd -g 389 dirsrv ; useradd -u 389 -g 389 -c 'DS System User' -d '/var/lib/dirsrv' --no-create-home -s '/sbin/nologin' dirsrv
 
 ADD bin/ /bin/
 ADD etc/ /etc/
