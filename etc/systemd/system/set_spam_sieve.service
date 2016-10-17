@@ -1,0 +1,10 @@
+[Unit]
+Description=set_spam_sieve.sh script
+
+[Service]
+Type=simple
+EnvironmentFile=/etc/default/set_spam_sieve
+ExecStart=/bin/set_spam_sieve.sh
+
+[Install]
+WantedBy=multi-user.target

@@ -160,6 +160,9 @@ function configure_spam_sieve {
             # Manage services
             export SERVICE_SET_SPAM_SIEVE=true
 
+            # Set timeout
+            echo "SPAM_SIEVE_TIMEOUT=\"$SPAM_SIEVE_TIMEOUT\"" >/etc/default/set_spam_sieve
+
             # Configure amavis
             sed -i '/^[^#]*$sa_spam_subject_tag/s/^/#/' $AMAVISD_CONF
             sed -i 's/^\($final_spam_destiny.*= \).*/\1D_PASS;/' $AMAVISD_CONF
