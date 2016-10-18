@@ -67,6 +67,22 @@ function setup_kolab {
     # Move /etc/aliases.db to /config/aliases.db
     if [ "$(readlink -f /etc/aliases.db)" == "/etc/aliases.db" ] ; then mv /etc/aliases.db /config/aliases.db && ln -s /config/aliases.db /etc/aliases.db ; fi
 
+    # Create logfiles
+    local LOGFILES=(
+        /var/log/maillog
+        /var/log/maillog
+        /var/log/roundcubemail/userlogins
+        /var/log/iRony/userlogins
+        /var/log/chwala/userlogins
+        /var/log/kolab-syncroton/userlogins
+        /var/log/kolab-webadmin/auth_fail.log
+    )
+    for LOGFILE in ${LOGFILES[@]}; do
+        mkdir -p $(dirname $LOGFILE)
+        touch $LOGFILE
+    done
+
+
     # Stop services
     RUNNING_SERVICES=($(systemctl list-units | grep running | awk '{print $1}' | grep -v '^systemd-\|start.service\|^dbus'))
     echo systemctl stop ${RUNNING_SERVICES[@]}
@@ -183,7 +199,7 @@ function configure_fail2ban {
     case $1 in
         true  ) 
             # Manage services
-            export SERVICE_SYSLOG=true
+            export SERVICE_RSYSLOG=true
             export SERVICE_FAIL2BAN=true
             crudini --set $FAIL2BAN_JAIL_CONF DEFAULT bantime $FAIL2BAN_BANTIME
 
@@ -252,11 +268,11 @@ function configure_dkim {
     case $1 in
         true  ) 
             # Manage services
-            export SERVICE_SYSLOG=true
+            export SERVICE_RSYSLOG=true
         ;;
         false )
             # Manage services
-            export SERVICE_SYSLOG=false
+            export SERVICE_RSYSLOG=false
         ;;
     esac
 }
