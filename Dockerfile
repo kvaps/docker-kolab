@@ -1,6 +1,6 @@
 FROM kvaps/baseimage:systemd
 MAINTAINER kvaps <kvapss@gmail.com>
-ENV REFRESHED_AT 2016-10-18
+ENV REFRESHED_AT 2016-10-19
 
 # Install repositories
 RUN yum -y update \
@@ -22,20 +22,18 @@ RUN yum -y update \
 # Also install docfiles as they contain important files for the setup-kolab script
  && sed -i '/nodocs/d' /etc/yum.conf
 
-RUN yum -y install expect vim crudini fail2ban php-fpm opendkim nginx mod_ssl anacron logrotate patch rsyslog \
+RUN yum -y install expect vim crudini fail2ban php-fpm opendkim nginx mod_ssl anacron logrotate patch rsyslog clamav-update \
  && systemctl disable firewalld.service
 
 # Install kolab
-RUN yum -y install kolab
-
-# fix freshclam
-RUN yum -y install clamav-update
+RUN yum -y install kolab manticore mongodb-server
 
 # fix guam for cyrus-imapd waiting
 RUN sed -i -e '/^\(Requires\|After\)=/ d' -e '/^Description=/aAfter=syslog.target cyrus-imapd.service\nRequires=cyrus-imapd.service' /usr/lib/systemd/system/guam.service
 
 # fix manticore
-RUN ln -s /usr/share/manticore/node_modules /etc/manticore/node_modules \
+RUN mkdir -p /etc/manticore/node_modules \
+ && ln -s /usr/share/manticore/node_modules /etc/manticore/node_modules \
  && rm -f /etc/php-fpm.d/www.conf
 
 #User for 389-ds

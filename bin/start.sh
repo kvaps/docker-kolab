@@ -34,8 +34,9 @@ configure_ext_milter_addr
 configure_roundcube_plugins
 
 # Start services
-start_dirsrv #|| exit 1
-image_services_start #|| exit 1
+start_dirsrv || exit 1
+image_services_start || exit 1
 
-# Start logs readding
-journalctl -xef
+echo -------------------------------------------------------------------------------
+# Start logs reading
+journalctl -b -ef
