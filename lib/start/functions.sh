@@ -64,8 +64,15 @@ function setup_kolab {
     # Set hostname for Amavisd
     sed -i 's/^[# ]*$myhostname.*$/$myhostname = "'$(hostname -f)'";/' $AMAVISD_CONF
 
-    # Move /etc/aliases.db to /config/aliases.db
-    if [ "$(readlink -f /etc/aliases.db)" == "/etc/aliases.db" ] ; then mv /etc/aliases.db /config/aliases.db && ln -s /config/aliases.db /etc/aliases.db ; fi
+    # Create or Move /etc/aliases.db to /config/aliases.db
+    if [ ! -f $(readlink -f /etc/aliases.db) ] ; then
+        postalias /config/aliases
+        rm -f /etc/aliases.db
+        ln -s /config/aliases.db /etc/aliases.db
+    elif [ "$(readlink -f /etc/aliases.db)" == "/etc/aliases.db" ] ; then
+        mv /etc/aliases.db /config/aliases.db
+        ln -s /config/aliases.db /etc/aliases.db
+    fi
 
     # Create logfiles
     local LOGFILES=(
@@ -250,21 +257,26 @@ function configure_dkim {
         
             # Conigure Postfix
             postconf -e milter_default_action=accept
-            if [ "$(postconf smtpd_milters | grep -c inet:localhost:8891)" != "0" ] && [ "$(grep -c "smtpd_milters=inet:localhost:8891" $POSTFIX_MASTER_CONF)" == "0" ] ; then
-                sed -i "/^127\.0\.0\.1\:10027.*smtpd/a \    -o smtpd_milters=inet:localhost:8891" $POSTFIX_MASTER_CONF
-                sed -i "/^127\.0\.0\.1\:10027.*smtpd/a \    -o milter_protocol=2" $POSTFIX_MASTER_CONF
+            if ! $(postconf smtpd_milters | grep -q inet:localhost:8891) && ! $(grep -q "smtpd_milters=inet:localhost:8891" $POSTFIX_MASTER_CONF) ; then
                 sed -i "/^127\.0\.0\.1\:[10025|10027].*smtpd/a \    -o receive_override_options=no_milters" $POSTFIX_MASTER_CONF
+                sed -i "/^127\.0\.0\.1\:10027.*smtpd/a \    -o smtpd_milters=inet:localhost:8891\n    -o milter_protocol=2" $POSTFIX_MASTER_CONF
             fi
 
         ;;
         false )
             # Manage services
             export SERVICE_OPENDKIM=false
+
+            # Conigure Postfix
+            if $(postconf smtpd_milters | grep -q inet:localhost:8891) || $(grep -q "smtpd_milters=inet:localhost:8891" $POSTFIX_MASTER_CONF) ; then
+                sed -i "N;N; s/\(127\.0\.0\.1\:10027.*smtpd\)\n    -o smtpd_milters=inet:localhost:8891\n    -o milter_protocol=2/\\1/g" $POSTFIX_MASTER_CONF
+                sed -i "N; s/\(127\.0\.0\.1\:[10025|10027].*smtpd\)\n    -o receive_override_options=no_milters/\\1/" $POSTFIX_MASTER_CONF
+            fi
         ;;
     esac
 }
 
-function configure_dkim {
+function configure_syslog {
     case $1 in
         true  ) 
             # Manage services

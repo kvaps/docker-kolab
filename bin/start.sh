@@ -18,6 +18,7 @@ configure WEBSERVER nginx apache
 configure FORCE_HTTPS true false
 configure NGINX_CACHE true false
 configure SPAM_SIEVE true false
+configure SYSLOG true false
 configure FAIL2BAN true false
 configure DKIM true false
 configure CERT_PATH
@@ -35,7 +36,7 @@ configure_roundcube_plugins
 
 # Start services
 start_dirsrv || exit 1
-image_services_start || exit 1
+image_services_start
 
 echo -------------------------------------------------------------------------------
 # Start logs reading
