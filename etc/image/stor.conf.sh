@@ -12,6 +12,8 @@
 
 VOLUMES=(config data spool log)
 
+
+VOLUME_CONFIG_STRIP=1
 VOLUME_CONFIG=(
     /etc/image/version.conf
     /etc/aliases
@@ -46,6 +48,7 @@ VOLUME_CONFIG=(
     /etc/ssl
 )
 
+VOLUME_DATA_STRIP=2
 VOLUME_DATA=(
     /var/lib/chwala
     /var/lib/clamav
@@ -62,6 +65,7 @@ VOLUME_DATA=(
     /var/lib/spamassassin
 )
 
+VOLUME_SPOOL_STRIP=2
 VOLUME_SPOOL=(
     /var/spool/amavisd
     /var/spool/imap
@@ -71,6 +75,7 @@ VOLUME_SPOOL=(
     /var/spool/pykolab
 )
 
+VOLUME_LOG_STRIP=2
 VOLUME_LOG=(
     /var/log/chwala
     /var/log/dirsrv
