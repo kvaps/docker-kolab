@@ -8,8 +8,8 @@ source image_env
 # Load directories
 image_stor || exit 1
 
-## Install updates if neded
-#image_update
+# Install updates if neded
+image_update || exit 1
 
 # First run
 [ ! -d /etc/dirsrv/slapd-* ] && setup_kolab
@@ -36,7 +36,7 @@ configure_roundcube_plugins
 
 # Start services
 start_dirsrv || exit 1
-image_services_start
+image_services_start || exit 1
 
 echo -------------------------------------------------------------------------------
 # Start logs reading

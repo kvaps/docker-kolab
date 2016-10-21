@@ -43,6 +43,13 @@ function configure {
 
 # Main functions
 
+function image_services_stop {
+    # Stop services
+    RUNNING_SERVICES=($(systemctl list-units | grep running | awk '{print $1}' | grep -v '^systemd-\|start.service\|^dbus'))
+    echo systemctl stop ${RUNNING_SERVICES[@]}
+    systemctl stop ${RUNNING_SERVICES[@]}
+}
+
 function setup_kolab {
     chk_env LDAP_ADMIN_PASS
     chk_env LDAP_MANAGER_PASS
@@ -89,11 +96,7 @@ function setup_kolab {
         touch $LOGFILE
     done
 
-
-    # Stop services
-    RUNNING_SERVICES=($(systemctl list-units | grep running | awk '{print $1}' | grep -v '^systemd-\|start.service\|^dbus'))
-    echo systemctl stop ${RUNNING_SERVICES[@]}
-    systemctl stop ${RUNNING_SERVICES[@]}
+    image_services_stop
 }
 
 function configure_webserver {

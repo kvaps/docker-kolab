@@ -1,0 +1,13 @@
+#!/bin/bash
+
+source '/lib/start/functions.sh'
+
+chk_env MYSQL_ROUNDCUBE_PASS
+chk_env MYSQL_ROOT_PASS
+
+/lib/start/setup-kolab.exp guam
+/lib/start/setup-kolab.exp manticore
+/lib/start/setup-kolab.exp roundcube
+/lib/start/setup-kolab.exp imap
+
+image_services_stop
