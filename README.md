@@ -1,5 +1,5 @@
-Kolab 3.4 in a Docker
-=====================
+Kolab 16 in a Docker
+====================
 
 ![Kolab Logo](https://github.com/kvaps/docker-kolab/blob/img/kolab.png?raw=true)
 
@@ -16,11 +16,15 @@ Quick start
 Run command:
 ```bash
 docker run \
+    --restart: on-failure:1 \
     --name kolab \
     -h mail.example.org \
     -v /etc/localtime:/etc/localtime:ro \
-    -v /lib/modules:/lib/modules:ro \
-    -v /opt/kolab:/data:rw \
+    -v /sys/fs/cgroup:/sys/fs/cgroup:ro \
+    -v $PWD/kolab/data:/data:rw \
+    -v $PWD/kolab/config:/config:rw \
+    -v $PWD/kolab/spool:/spool:rw \
+    -v $PWD/kolab/log:/log:rw \
     -e TZ=Europe/Moscow \
     -e LDAP_ADMIN_PASS=<password> \
     -e LDAP_MANAGER_PASS=<password> \
@@ -38,19 +42,12 @@ docker run \
     -p 143:143 \
     -p 993:993 \
     -p 4190:4190 \
+    --cap-add=SYS_ADMIN \
     --cap-add=NET_ADMIN \
-    --entrypoint=/bin/bash \
-    kvaps/kolab
+    --tty \
+    kvaps/kolab:16
 ```
 It should be noted that the `--cap-add=NET_ADMIN` and `-v /lib/modules:/lib/modules:ro` option is necessary only for **Fail2ban**, if you do not plan to use **Fail2ban**, you can exclude it.
-
-You can also more integrate Kolab to your system, simply replace `-v` options like this:
-```bash
-    -v /etc/kolab:/data/etc:rw \
-    -v /var/spool/kolab:/data/var/spool:rw \
-    -v /var/lib/kolab:/data/var/lib:rw \
-    -v /var/log/kolab:/data/var/log:rw \
-```
 
 Docker-compose
 --------------
@@ -58,39 +55,47 @@ Docker-compose
 You can use the docker-compose for this image is really simplify your life:
 
 ```yaml
-kolab:
-  restart: always
-  image: kvaps/kolab
-  hostname: mail
-  domainname: example.org
-  volumes:
-    - /etc/localtime:/etc/localtime:ro
-    - /lib/modules:/lib/modules:ro
-    - ./kolab:/data:rw
-  environment:
-    - TZ=Europe/Moscow
-    - LDAP_ADMIN_PASS=<password>
-    - LDAP_MANAGER_PASS=<password>
-    - LDAP_CYRUS_PASS=<password>
-    - LDAP_KOLAB_PASS=<password>
-    - MYSQL_ROOT_PASS=<password>
-    - MYSQL_KOLAB_PASS=<password>
-    - MYSQL_ROUNDCUBE_PASS=<password>
-    - KOLAB_DEFAULT_LOCALE=ru_RU
-    - ROUNDCUBE_SKIN=larry
-  ports:
-    - 80:80
-    - 443:443
-    - "25:25"
-    - 587:587
-    - 110:110
-    - 995:995
-    - 143:143
-    - 993:993
-    - 4190:4190
-    - 389:389
-  cap_add:
-    - NET_ADMIN
+version: '2'
+services:
+  kolab:
+    restart: on-failure:1
+    image: kvaps/kolab:16
+    hostname: mail
+    domainname: example.org
+    volumes:
+      - /etc/localtime:/etc/localtime:ro
+      - /sys/fs/cgroup:/sys/fs/cgroup:ro
+      - ./kolab/data:/data:rw
+      - ./kolab/config:/config:rw
+      - ./kolab/spool:/spool:rw
+      - ./kolab/log:/log:rw
+    tmpfs:
+      - /run
+    environment:
+      - TZ=Europe/Moscow
+      - LDAP_ADMIN_PASS=<password>
+      - LDAP_MANAGER_PASS=<password>
+      - LDAP_CYRUS_PASS=<password>
+      - LDAP_KOLAB_PASS=<password>
+      - MYSQL_ROOT_PASS=<password>
+      - MYSQL_KOLAB_PASS=<password>
+      - MYSQL_ROUNDCUBE_PASS=<password>
+      - KOLAB_DEFAULT_LOCALE=ru_RU
+    ports:
+      - '80:80'
+      - '443:443'
+      - '25:25'
+      - '587:587'
+      - '110:110'
+      - '995:995'
+      - '143:143'
+      - '993:993'
+      - '4190:4190'
+      - '389:389'
+    cap_add:
+      - SYS_ADMIN
+      - NET_ADMIN
+    tty: true
 ```
 
 Configuration
