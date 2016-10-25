@@ -16,7 +16,7 @@ Quick start
 Run command:
 ```bash
 docker run \
-    --restart: on-failure:1 \
+    --restart on-failure:1 \
     --name kolab \
     -h mail.example.org \
     -v /etc/localtime:/etc/localtime:ro \
