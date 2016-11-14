@@ -2,7 +2,7 @@ version: '2'
 services:
   kolab:
     restart: on-failure:1
-    image: kvaps/kolab-dev
+    image: kvaps/kolab:16
     hostname: mail
     domainname: example.org
     volumes:
