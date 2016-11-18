@@ -1,13 +1,29 @@
 #!/bin/bash
 
-source '/lib/start/functions.sh'
+if [ -d /data/etc ] && [ -d /data/var/lib ] && [ -d /data/var/log ] && [ -d /data/var/spool ] ; then
+    echo "Upgrading from Kolab 3.4 docker image has started!"
+        mkdir "/data/backup-kolab-3.4" | exit 2
+        mv "/data/etc" "/data/var" "/data/backup-kolab-3.4/" | exit 2
 
-chk_env MYSQL_ROUNDCUBE_PASS
-chk_env MYSQL_ROOT_PASS
+        tar -C "/data/backup-kolab-3.4/etc" -cvpf - . | tar -C "/config" -xvf - | exit 2
+        tar -C "/data/backup-kolab-3.4/var/log" -cvpf - . | tar -C "/log" -xvf - | exit 2
+        tar -C "/data/backup-kolab-3.4/var/data" -cvpf - . | tar -C "/data" -xvf - | exit 2
+        tar -C "/data/backup-kolab-3.4/var/spool" -cvpf - . | tar -C "/spool" -xvf - | exit 2
 
-/lib/start/setup-kolab.exp guam
-/lib/start/setup-kolab.exp manticore
-/lib/start/setup-kolab.exp roundcube
-/lib/start/setup-kolab.exp imap
+        source '/lib/start/functions.sh'
 
-image_services_stop
+        chk_env MYSQL_ROUNDCUBE_PASS
+        chk_env MYSQL_ROOT_PASS
+        
+        /lib/start/setup-kolab.exp guam | exit 2
+        /lib/start/setup-kolab.exp manticore | exit 2
+        /lib/start/setup-kolab.exp roundcube | exit 2
+        /lib/start/setup-kolab.exp imap | exit 2
+        
+        image_services_stop
+
+    echo "Finished!"
+else
+    >&2 echo "Kolab 3.4 docker image directories is not detected!"
+    exit 2
+fi
