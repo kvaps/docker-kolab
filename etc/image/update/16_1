@@ -2,13 +2,13 @@
 
 if [ -d /data/etc ] && [ -d /data/var/lib ] && [ -d /data/var/log ] && [ -d /data/var/spool ] ; then
     echo "Upgrading from Kolab 3.4 docker image has started!"
-        mkdir "/data/backup-kolab-3.4" | exit 2
-        mv "/data/etc" "/data/var" "/data/backup-kolab-3.4/" | exit 2
 
-        tar -C "/data/backup-kolab-3.4/etc" -cvpf - . | tar -C "/config" -xvf - | exit 2
-        tar -C "/data/backup-kolab-3.4/var/log" -cvpf - . | tar -C "/log" -xvf - | exit 2
-        tar -C "/data/backup-kolab-3.4/var/data" -cvpf - . | tar -C "/data" -xvf - | exit 2
-        tar -C "/data/backup-kolab-3.4/var/spool" -cvpf - . | tar -C "/spool" -xvf - | exit 2
+        mv /data/etc/{*,.*} /config/
+        mv /data/var/log/{*,.*} /log/
+        mv /data/var/spool/{*,.*} /spool/
+        mv /data/var/lib/{*,.*} /data/
+
+        rmdir /data/etc /data/var/log /data/var/spool /data/var/lib /data/var
 
         source '/lib/start/functions.sh'
 
