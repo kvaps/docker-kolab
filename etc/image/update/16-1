@@ -1,0 +1,40 @@
+#!/bin/bash
+
+# Update from v16-beta
+if [ -d /data/imap ] ; then
+    exit 0
+fi
+
+# Update from v3.4
+if ( [ -d /data/etc ] && [ -d /data/var/lib ] && [ -d /data/var/log ] && [ -d /data/var/spool ] ) || [ -d "/data/kolab-3.4-data" ] ; then
+    echo "Moving persistent data from Kolab 3.4 docker image"
+
+    mkdir "/data/kolab-3.4-data"
+    mv "/data/etc" "/data/var" "/data/kolab-3.4-data/"
+    tar -C "/data/kolab-3.4-data/etc" -cvpf - . | tar -C "/config" -xvf - && rm -rf "/data/kolab-3.4-data/etc"
+    tar -C "/data/kolab-3.4-data/var/log" -cvpf - . | tar -C "/log" -xvf - && rm -rf "/data/kolab-3.4-data/var/log"
+    tar -C "/data/kolab-3.4-data/var/spool" -cvpf - . | tar -C "/spool" -xvf - && rm -rf "/data/kolab-3.4-data/var/spool"
+    mv -T "/data/kolab-3.4-data/var/lib" "/data"
+
+    rmdir "/data/kolab-3.4-data/"{etc,var/log,var/spool,var,}
+
+    echo "Finished!"
+else
+    >&2 echo "Kolab 3.4 docker image directories is not detected!"
+    exit 2
+fi
+
+echo "Upgrading from Kolab 3.4 docker image"
+source '/lib/start/functions.sh'
+
+chk_env MYSQL_ROUNDCUBE_PASS
+chk_env MYSQL_ROOT_PASS
+
+/lib/start/setup-kolab.exp guam
+/lib/start/setup-kolab.exp manticore
+/lib/start/setup-kolab.exp roundcube
+/lib/start/setup-kolab.exp imap
+
+image_services_stop
+
+echo "Finished!"
