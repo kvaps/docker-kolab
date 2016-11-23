@@ -25,6 +25,10 @@ else
 fi
 
 echo "Upgrading from Kolab 3.4 docker image"
+
+# Load directories
+image_stor || exit 1
+
 source '/lib/start/functions.sh'
 
 chk_env MYSQL_ROUNDCUBE_PASS
