@@ -5,11 +5,11 @@ source '/lib/start/functions.sh'
 # Load default environment variables
 source image_env
 
-# Load directories
-image_stor || exit 1
-
 # Install updates if neded
 image_update || exit 1
+
+# Load directories
+image_stor || exit 1
 
 # First run
 [ ! -d /etc/dirsrv/slapd-* ] && setup_kolab
