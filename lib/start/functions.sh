@@ -67,8 +67,8 @@ function detect_old_image {
         >&2 echo
         >&2 echo "After it, don't forget to create version.conf file:"
         >&2 echo
-        >&2 echo "    # mkdir -p ./data/image"
-        >&2 echo "    # echo '3.4-0' > ./data/image/version.conf"
+        >&2 echo "    # mkdir -p ./config/image"
+        >&2 echo "    # echo '3.4-0' > ./config/image/version.conf"
         >&2 echo
 
         exit 1
