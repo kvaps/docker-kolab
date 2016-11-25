@@ -1,10 +1,5 @@
 #!/bin/bash
 
-# Update from v16-beta
-if [ -d /data/imap ] ; then
-    exit 0
-fi
-
 # Update from v3.4
 if ( [ -d /data/etc ] && [ -d /data/var/lib ] && [ -d /data/var/log ] && [ -d /data/var/spool ] ) || [ -d "/data/kolab-3.4-data" ] ; then
     echo "Moving persistent data from Kolab 3.4 docker image"

@@ -1,5 +1,7 @@
 #!/bin/bash
 
+CONFIG_VERSION='16-1'
+
 KOLAB_CONF=`          readlink -f "/etc/kolab/kolab.conf"`
 ROUNDCUBE_CONF=`      readlink -f "/etc/roundcubemail/config.inc.php"`
 PHP_CONF=`            readlink -f "/etc/php.ini"`
@@ -95,6 +97,9 @@ function setup_kolab {
         mkdir -p $(dirname $LOGFILE)
         touch $LOGFILE
     done
+    
+    # Write configuration verion info
+    echo "$CONFIG_VERSION" > /etc/image/version.conf
 
     image_services_stop
 }
