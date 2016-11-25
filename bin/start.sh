@@ -6,7 +6,9 @@ source '/lib/start/functions.sh'
 source image_env
 
 # Install updates if neded
-image_update || exit 1
+if [ -f '/etc/image/version.conf' ]; then
+    image_update || exit 1
+fi
 
 # Load directories
 image_stor || exit 1
