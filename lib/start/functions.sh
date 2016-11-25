@@ -59,7 +59,6 @@ function detect_old_image {
         >&2 echo
         >&2 echo "Please move your data directories to separate storages like:"
         >&2 echo
-        >&2 echo "    # shopt -s dotglob"
         >&2 echo "    # mv ./data/etc/* ./config/"
         >&2 echo "    # mv ./data/var/lib/* ./data/"
         >&2 echo "    # mv ./data/var/log/* ./log/"
