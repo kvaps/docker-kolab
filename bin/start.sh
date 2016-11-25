@@ -14,7 +14,9 @@ fi
 image_stor || exit 1
 
 # First run
-[ ! -d /etc/dirsrv/slapd-* ] && setup_kolab
+if [ ! -d /etc/dirsrv/slapd-* ]; then
+    setup_kolab || exit 1
+fi
 
 configure WEBSERVER nginx apache
 configure FORCE_HTTPS true false
