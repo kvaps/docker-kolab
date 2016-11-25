@@ -1,21 +1,23 @@
 #!/bin/bash
-
 source '/lib/start/functions.sh'
 
 # Load default environment variables
 source image_env
 
-# Install updates if neded
-if [ -f '/etc/image/version.conf' ]; then
-    image_update || exit 1
-fi
-
 # Load directories
 image_stor || exit 1
 
-# First run
-if [ ! -d /etc/dirsrv/slapd-* ]; then
+if [ -f '/etc/image/version.conf' ]; then
+    # Install updates if neded
+    image_update || exit 1
+elif [ ! -d /etc/dirsrv/slapd-* ]; then
+    # First run
+    detect_old_image
     setup_kolab || exit 1
+    echo "16-0" > /etc/image/version.conf
+else
+    >&2 echo "Kolab already installed but version.conf is not exist!"
+    exit 1
 fi
 
 configure WEBSERVER nginx apache

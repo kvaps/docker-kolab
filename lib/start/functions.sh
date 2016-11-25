@@ -1,7 +1,5 @@
 #!/bin/bash
 
-CONFIG_VERSION='16-1'
-
 KOLAB_CONF=`          readlink -f "/etc/kolab/kolab.conf"`
 ROUNDCUBE_CONF=`      readlink -f "/etc/roundcubemail/config.inc.php"`
 PHP_CONF=`            readlink -f "/etc/php.ini"`
@@ -52,6 +50,30 @@ function image_services_stop {
     systemctl stop ${RUNNING_SERVICES[@]}
 }
 
+function detect_old_image {
+    if [ -d /data/etc ] || [ -d /data/var/lib ] || [ -d /data/var/log ] || [ -d /data/var/spool ] ; then
+        >&2 echo
+        >&2 echo "============================================="
+        >&2 echo "Old Kolab 3.4 directories structure detected!"
+        >&2 echo "============================================="
+        >&2 echo
+        >&2 echo "Please move your data directories to separate storages like:"
+        >&2 echo
+        >&2 echo "    # mv ./data/etc ./config"
+        >&2 echo "    # mv ./data/var/lib ./data"
+        >&2 echo "    # mv ./data/var/log ./log"
+        >&2 echo "    # mv ./data/var/spool ./spool"
+        >&2 echo
+        >&2 echo "After it, don't forget to create version.conf file:"
+        >&2 echo
+        >&2 echo "    # mkdir -p ./data/image"
+        >&2 echo "    # echo '3.4-0' > ./data/image/version.conf"
+        >&2 echo
+
+        exit 1
+    fi
+}
+
 function setup_kolab {
     chk_env LDAP_ADMIN_PASS
     chk_env LDAP_MANAGER_PASS
@@ -98,9 +120,6 @@ function setup_kolab {
         touch $LOGFILE
     done
     
-    # Write configuration verion info
-    echo "$CONFIG_VERSION" > /etc/image/version.conf
-
     image_services_stop
 }
 
