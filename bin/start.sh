@@ -4,6 +4,9 @@ source '/lib/start/functions.sh'
 # Load default environment variables
 source image_env
 
+# Check for old image directories
+detect_old_image
+
 # Load directories
 image_stor || exit 1
 
@@ -12,7 +15,6 @@ if [ -f '/etc/image/version.conf' ]; then
     image_update || exit 1
 elif [ ! -d /etc/dirsrv/slapd-* ]; then
     # First run
-    detect_old_image
     setup_kolab || exit 1
     echo "16-0" > /etc/image/version.conf
 else
