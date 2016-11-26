@@ -86,6 +86,10 @@ function setup_kolab {
 
     # Run setup-kolab
     /lib/start/setup-kolab.exp
+    setup_kolab_after
+}
+
+function setup_kolab_after {
 
     # Alias for /webmail/ in apache
     sed -i \
