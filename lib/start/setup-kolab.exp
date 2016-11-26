@@ -77,7 +77,7 @@ expect {
        send "\r"
        exp_continue
     }
-    "MySQL root password *:" {
+    "MySQL root password*:" {
        send_env MYSQL_ROOT_PASS
        send "\r"
        exp_continue
