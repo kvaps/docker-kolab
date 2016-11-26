@@ -5,14 +5,49 @@ echo "Upgrading from Kolab 3.4-1 docker image"
 
 source '/lib/start/functions.sh'
 
+OLD_CONFIGS=(
+    amavisd
+    clamd.conf
+    clamd.d
+    cyrus.conf
+    fail2ban
+    httpd
+    imapd.annotations.conf
+    imapd.conf
+    iRony
+    mail
+    my.cnf
+    my.cnf.d
+    nginx
+    php.d
+    php-fpm.conf
+    php-fpm.d
+    php.ini
+    postfix
+    roundcubemail
+    supervisord.conf
+)
+
+mkdir /config/3.4-update.backup
+for i in ${OLD_CONFIGS[@]}; do
+    echo mv /config/$i /config/3.4-update.backup/$(basename $i)
+    mv /config/$i /config/3.4-update.backup/$(basename $i)
+    rm -f /etc/$i
+    mv /etc/$i.dist /etc/$i
+done
+
+image_stor
+
 chk_env MYSQL_ROUNDCUBE_PASS
 chk_env MYSQL_ROOT_PASS
 
 /lib/start/setup-kolab.exp guam
 /lib/start/setup-kolab.exp manticore
+systemctl start mariadb.service
 /lib/start/setup-kolab.exp roundcube
 /lib/start/setup-kolab.exp imap
 
+setup_kolab_after
 image_services_stop
 
 echo "Finished!"
