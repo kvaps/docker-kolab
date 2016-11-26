@@ -362,7 +362,7 @@ function configure_cert_path {
     sed -i -e "/^[^#]*SSLCertificateKeyFile /c\SSLCertificateKeyFile $privkey_path" $HTTPD_SSL_CONF
     if [ -f "$chain_path" ]; then
         if `sed 's/#.*$//g' /etc/httpd/conf.d/ssl.conf | grep -q SSLCertificateChainFile` ; then
-            sed -e "/^[^#]*SSLCertificateChainFile: /cSSLCertificateChainFile: $chain_path" $HTTPD_SSL_CONF
+            sed -i -e "/^[^#]*SSLCertificateChainFile: /cSSLCertificateChainFile: $chain_path" $HTTPD_SSL_CONF
         else
             sed -i -e "/^[^#]*SSLCertificateFile/aSSLCertificateChainFile: $chain_path" $HTTPD_SSL_CONF
         fi
