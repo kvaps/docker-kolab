@@ -36,6 +36,22 @@ for i in ${OLD_CONFIGS[@]}; do
     mv /etc/$i.dist /etc/$i
 done
 
+chown opendkim: -R /etc/opendkim/
+chown -R dirsrv: /etc/dirsrv/slapd-mail/ /var/lib/dirsrv/ /var/log/dirsrv/
+
+cat > /config/sysconfig/dirsrv-$(hostname -s) <<EOT
+SERVER_DIR=/usr/lib64/dirsrv
+SERVERBIN_DIR=/usr/sbin
+CONFIG_DIR=/etc/dirsrv/slapd-$(hostname -s)
+INST_DIR=/usr/lib64/dirsrv/slapd-$(hostname -s)
+RUN_DIR=/var/run/dirsrv
+DS_ROOT=
+PRODUCT_NAME=slapd
+EOT
+
+setup-ds.pl --silent --update
+
+
 image_stor
 
 chk_env MYSQL_ROUNDCUBE_PASS
@@ -47,7 +63,9 @@ systemctl start mariadb.service
 /lib/start/setup-kolab.exp roundcube
 /lib/start/setup-kolab.exp imap
 
+sed -i 's/my $retry =.*;/my $retry = 3;/g' /usr/lib64/dirsrv/perl/DSCreate.pm
+setup-ds.pl -ddd --silent --update
+
 setup_kolab_after
-image_services_stop
 
 echo "Finished!"
