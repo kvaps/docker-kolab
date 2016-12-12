@@ -40,9 +40,6 @@ RUN mkdir -p /etc/manticore/node_modules \
  && ln -s /usr/share/manticore/node_modules /etc/manticore/node_modules \
  && rm -f /etc/php-fpm.d/www.conf
 
-# User for 389-ds
-RUN groupadd -g 389 dirsrv ; useradd -u 389 -g 389 -c 'DS System User' -d '/var/lib/dirsrv' --no-create-home -s '/sbin/nologin' dirsrv
-
 ADD bin/ /bin/
 ADD etc/ /etc/
 ADD lib/start/ /lib/start/
