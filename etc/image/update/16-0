@@ -33,7 +33,7 @@ for i in ${OLD_CONFIGS[@]}; do
     echo mv /config/$i /config/3.4-update.backup/$(basename $i)
     mv /config/$i /config/3.4-update.backup/$(basename $i)
     rm -f /etc/$i
-    mv /etc/$i.dist /etc/$i
+    cp -a /etc/$i.dist /etc/$i
 done
 
 chown opendkim: -R /etc/opendkim/
@@ -63,9 +63,11 @@ systemctl start mariadb.service
 /lib/start/setup-kolab.exp roundcube
 /lib/start/setup-kolab.exp imap
 
+rm -rf /etc/dirsrv/schema/
+cp -a /etc/dirsrv.dist/schema/ /etc/dirsrv/schema/
 sed -i 's/my $retry =.*;/my $retry = 3;/g' /usr/lib64/dirsrv/perl/DSCreate.pm
 setup-ds.pl -ddd --silent --update
 
 setup_kolab_after
 
-echo "Finished!"
+echo "Upgrading from Kolab 3.4-1 docker image Finished!"
