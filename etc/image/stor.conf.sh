@@ -24,6 +24,8 @@ VOLUME_CONFIG=(
     /etc/cyrus.conf
     /etc/dirsrv
     /etc/sysconfig/dirsrv-$(hostname -s)
+    /etc/sysconfig/mongod
+    /etc/sysconfig/mongos
     /etc/fail2ban
     /etc/freshclam.conf
     /etc/httpd
@@ -34,6 +36,8 @@ VOLUME_CONFIG=(
     /etc/kolab-freebusy
     /etc/mail/spamassassin
     /etc/manticore
+    /etc/mongod.conf
+    /etc/mongos.conf
     /etc/my.cnf.d
     /etc/nginx
     /etc/opendkim
@@ -59,6 +63,7 @@ VOLUME_DATA=(
     /var/lib/iRony
     /var/lib/kolab
     /var/lib/kolab-freebusy
+    /var/lib/mongodb
     /var/lib/mysql
     /var/lib/postfix
     /var/lib/roundcubemail
@@ -87,6 +92,7 @@ VOLUME_LOG=(
     /var/log/kolab-syncroton
     /var/log/kolab-webadmin
     /var/log/mariadb
+    /var/log/mongodb
     /var/log/nginx
     /var/log/php-fpm
     /var/log/roundcubemail
