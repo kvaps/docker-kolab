@@ -330,8 +330,8 @@ function configure_cert_path {
     else
         if [ -d "${CERT_PATH}/$(hostname -f)" ]; then
             local domain_cers="${CERT_PATH}/$(hostname -f)"
-        elif [ -d "$(find ${CERT_PATH} -name cert.pem -exec dirname `readlink -f {}` \; -quit)" ]; then
-            local domain_cers="$(find ${CERT_PATH} -name cert.pem -exec dirname `readlink -f {}` \; -quit)"
+        elif [ -d "$(dirname $(readlink -f $(find ${CERT_PATH} -name cert.pesm -print | head -n 1) 2> /dev/null) 2> /dev/null)" ]; then
+            local domain_cers="$(dirname $(readlink -f $(find ${CERT_PATH} -name cert.pesm -print | head -n 1) 2> /dev/null) 2> /dev/null)"
         else
             echo "configure_cert_path:  no certificates found in $CERT_PATH fallback to /etc/pki/tls/kolab"
             export CERT_PATH="/etc/pki/tls/kolab"
