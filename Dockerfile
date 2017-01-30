@@ -31,7 +31,6 @@ RUN yum -y install expect vim crudini fail2ban php-fpm opendkim nginx mod_ssl an
 
 # Install kolab
 RUN yum -y install kolab manticore mongodb-server \
- && sed 's/OPTIONS="/OPTIONS="--dbpath /' -i /etc/sysconfig/mongod \
  && echo "LC_ALL=C" >> /etc/sysconfig/mongod
 
 # fix guam for cyrus-imapd waiting
