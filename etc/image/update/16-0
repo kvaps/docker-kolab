@@ -39,6 +39,9 @@ done
 chown opendkim: -R /etc/opendkim/
 chown -R dirsrv: /etc/dirsrv/slapd-mail/ /var/lib/dirsrv/ /var/log/dirsrv/
 
+mkdir -p /var/run/mongodb/ /var/run/mongodb/ /var/lib/mongodb/
+chown -R mongodb:mongodb /var/run/mongodb/ /var/run/mongodb/ /var/lib/mongodb/
+
 cat > /config/sysconfig/dirsrv-$(hostname -s) <<EOT
 SERVER_DIR=/usr/lib64/dirsrv
 SERVERBIN_DIR=/usr/sbin
