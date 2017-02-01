@@ -163,7 +163,7 @@ function configure_force_https {
             if ! $(grep -q '<VirtualHost _default_:80>' $HTTPD_CONF) ; then
                 echo -e '<VirtualHost _default_:80>\n    RewriteEngine On\n    RewriteRule (.*) https://%{HTTP_HOST}%{REQUEST_URI} [R=301,L]\n</VirtualHost>' >> $HTTPD_CONF
             fi
-            sed -i -e '0,/^}/ {/listen 80/,/^}/ {s|include /etc/nginx/kolab.conf;|location / {\n        return 301 https://$server_name$request_uri;\n    }|}}' $NGINX_DEFAULT_CONF
+            sed -i -e '0,/^}/ {/listen 80/,/^}/ {s|include /etc/nginx/kolab.conf;|location / {\n        return 301 https://$host$request_uri;\n    }|}}' $NGINX_DEFAULT_CONF
         ;;
         false )
             sed -i -e '/\<VirtualHost _default_:80>/,/<\/VirtualHost>/d' $HTTPD_CONF
