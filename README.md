@@ -10,6 +10,11 @@ Installation is supports automatic configuration **kolab**, **nginx**, **opendki
   - [GitHub](https://github.com/kvaps/docker-kolab)
   - [DockerHub](https://hub.docker.com/r/kvaps/kolab/)
 
+Status 
+------
+
+This project is effectively unmaintained. I will do my best to shepherd pull requests, but cannot guarantee a prompt response and do not have bandwidth to address issues or add new features. Please let me know via an issue if you'd be interested in taking ownership of docker-kolab.
+
 Quick start
 -----------
 
